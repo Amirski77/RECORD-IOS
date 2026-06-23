@@ -19,8 +19,7 @@ struct ContentView: View {
                 // HEADER: wordmark + nav
                 HStack {
                     Text("RECORD")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(.custom("Spectral-Bold", size: 22))
                         .tracking(4)
                         .foregroundColor(.recordText)
                     Spacer()
