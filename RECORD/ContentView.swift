@@ -18,49 +18,48 @@ struct ContentView: View {
                 
                 // HEADER: wordmark + nav
                 HStack {
-                    Text("RECORD")
-                        .font(.custom("Spectral-Bold", size: 22))
-                        .tracking(4)
+                    Text ("RECORD")
+                        .font(.display(22, .bold))
+                        .tracking(3)
                         .foregroundColor(.recordText)
                     Spacer()
                     Text("@amir")
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(.body(11, .medium))
                         .foregroundStyle(Color.recordMuted)
                 }
                 
-                // DATELINE
+                //DATELINE
                 HStack {
                     Text("THE DAILY EDITION")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.body(10, .medium))
                         .tracking(2)
                         .foregroundStyle(Color.recordDim)
                     Spacer()
                     Text("THU · 18 JUN 2026")
-                        .font(.system(.caption, design: .monospaced))
-                        .tracking(1)
+                        .font(.body(10, .medium))
+                        .tracking(2)
                         .foregroundStyle(Color.recordDim)
                 }
                 Rectangle()
                     .fill(Color.recordDim.opacity(0.3))
                     .frame(height: 1)
                 
-                // THE GREEN "POST" CARD
+                //THE GREEN "POST" CARD
                 VStack(alignment: .leading, spacing: 12) {
                     Text("YOUR RECORD · TODAY")
-                        .font(.system(.caption, design: .monospaced))
-                        .tracking(2)
+                        .font(.body(10, .medium))
+                        .tracking(1.5)
                         .foregroundStyle(Color.recordGreen)
                     
                     Text("What are you playing today?")
-                        .font(.title)
-                        .fontWeight(.bold)
+                        .font(.display(24, .bold))
                         .foregroundStyle(Color.recordText)
                     
                     Button {
-                        // we'll wire this up later
+                        //we'll wire this up later
                     } label: {
-                        Text("Choose a song  →")
-                            .fontWeight(.bold)
+                        Text("Choose a song →")
+                            .font(.body(13.5, .bold))
                             .foregroundStyle(.black)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
@@ -80,37 +79,35 @@ struct ContentView: View {
                     , alignment: .leading
                 )
                 
-                // TODAY'S RECORDS heading
+                //TODAY'S RECORDS heading
                 HStack {
                     Text("TODAY'S RECORDS")
-                        .font(.headline)
-                        .fontWeight(.bold)
+                        .font(.display(16, .bold))
                         .tracking(1)
                         .foregroundStyle(Color.recordText)
                     Spacer()
                     Text("June 18")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.body(10, .medium))
                         .foregroundStyle(Color.recordDim)
                 }
                 Rectangle()
                     .fill(Color.recordDim.opacity(0.3))
                     .frame(height: 1)
-                        
-                //EMPTY STATE
+                
+                // EMPTY STATE
                 VStack(spacing: 8) {
                     Text("00")
-                        .font(.system(size: 64, weight: .bold))
+                        .font(.display(72, .extraBold))
                         .foregroundStyle(Color.recordSurface)
                     Text("No records yet today.")
-                        .font(.title3)
-                        .fontWeight(.semibold)
+                        .font(.display(21, .bold))
                         .foregroundStyle(Color.recordText)
                     Text("The edition fills as your friends drop their song. Post yours and be the first line.")
-                        .font(.subheadline)
+                        .font(.body(13))
                         .foregroundStyle(Color.recordMuted)
                         .multilineTextAlignment(.center)
                     Text("ONE SONG · ONE DAY · RESETS 4AM")
-                        .font(.system(.caption2, design: .monospaced))
+                        .font(.body(10, .medium))
                         .tracking(2)
                         .foregroundStyle(Color.recordDim)
                         .padding(.top, 8)
@@ -124,6 +121,7 @@ struct ContentView: View {
         }
     }
 }
+        
 #Preview {
     ContentView()
 }

@@ -16,3 +16,24 @@ extension Color {
     static let recordMuted = Color(red: 0.54, green: 0.54, blue: 0.54)   // #8a8a8a
     static let recordDim = Color(red: 0.435, green: 0.435, blue: 0.435)  // #6f6f6f
 }
+
+extension Font {
+    // Display — Spectral (serif): titles, names, numbers, headings, wordmark
+    static func display(_ size: CGFloat, _ weight: Spectral = .bold) -> Font {
+        .custom(weight.rawValue, size: size)
+    }
+    enum Spectral: String {
+        case bold      = "Spectral-Bold"
+        case extraBold = "Spectral-ExtraBold"
+    }
+
+    // Body — Geist (sans): notes, artists, labels, buttons, meta
+    static func body(_ size: CGFloat, _ weight: Geist = .regular) -> Font {
+        .custom(weight.rawValue, size: size)
+    }
+    enum Geist: String {
+        case regular = "Geist-Regular"
+        case medium  = "Geist-Medium"
+        case bold    = "Geist-Bold"
+    }
+}
