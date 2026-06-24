@@ -18,18 +18,16 @@ extension Color {
 }
 
 extension Font {
-    // Display — Spectral (serif): titles, names, numbers, headings, wordmark
     static func display(_ size: CGFloat, _ weight: Spectral = .bold) -> Font {
-        .custom(weight.rawValue, size: size)
+        .custom(weight.rawValue, size: size, relativeTo: .body)
     }
     enum Spectral: String {
         case bold      = "Spectral-Bold"
         case extraBold = "Spectral-ExtraBold"
     }
 
-    // Body — Geist (sans): notes, artists, labels, buttons, meta
-    static func body(_ size: CGFloat, _ weight: Geist = .regular) -> Font {
-        .custom(weight.rawValue, size: size)
+    static func sans(_ size: CGFloat, _ weight: Geist = .regular) -> Font {
+        .custom(weight.rawValue, size: size, relativeTo: .body)
     }
     enum Geist: String {
         case regular = "Geist-Regular"

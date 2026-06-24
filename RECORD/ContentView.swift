@@ -24,19 +24,19 @@ struct ContentView: View {
                         .foregroundColor(.recordText)
                     Spacer()
                     Text("@amir")
-                        .font(.body(11, .medium))
+                        .font(.sans(11, .medium))
                         .foregroundStyle(Color.recordMuted)
                 }
                 
                 //DATELINE
                 HStack {
                     Text("THE DAILY EDITION")
-                        .font(.body(10, .medium))
+                        .font(.sans(10, .medium))
                         .tracking(2)
                         .foregroundStyle(Color.recordDim)
                     Spacer()
                     Text("THU · 18 JUN 2026")
-                        .font(.body(10, .medium))
+                        .font(.sans(10, .medium))
                         .tracking(2)
                         .foregroundStyle(Color.recordDim)
                 }
@@ -47,7 +47,7 @@ struct ContentView: View {
                 //THE GREEN "POST" CARD
                 VStack(alignment: .leading, spacing: 12) {
                     Text("YOUR RECORD · TODAY")
-                        .font(.body(10, .medium))
+                        .font(.sans(10, .medium))
                         .tracking(1.5)
                         .foregroundStyle(Color.recordGreen)
                     
@@ -59,7 +59,7 @@ struct ContentView: View {
                         //we'll wire this up later
                     } label: {
                         Text("Choose a song →")
-                            .font(.body(13.5, .bold))
+                            .font(.sans(13.5, .bold))
                             .foregroundStyle(.black)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
@@ -87,7 +87,7 @@ struct ContentView: View {
                         .foregroundStyle(Color.recordText)
                     Spacer()
                     Text("June 18")
-                        .font(.body(10, .medium))
+                        .font(.sans(10, .medium))
                         .foregroundStyle(Color.recordDim)
                 }
                 Rectangle()
@@ -103,11 +103,11 @@ struct ContentView: View {
                         .font(.display(21, .bold))
                         .foregroundStyle(Color.recordText)
                     Text("The edition fills as your friends drop their song. Post yours and be the first line.")
-                        .font(.body(13))
+                        .font(.sans(13))
                         .foregroundStyle(Color.recordMuted)
                         .multilineTextAlignment(.center)
                     Text("ONE SONG · ONE DAY · RESETS 4AM")
-                        .font(.body(10, .medium))
+                        .font(.sans(10, .medium))
                         .tracking(2)
                         .foregroundStyle(Color.recordDim)
                         .padding(.top, 8)
