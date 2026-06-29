@@ -6,8 +6,11 @@
 //
 
 import SwiftUI
+internal import Auth
+import Supabase
 
 struct ContentView: View {
+    @State private var username = "..."
     var body: some View {
         ZStack {
             //Full-screen dark background
@@ -23,9 +26,17 @@ struct ContentView: View {
                         .tracking(3)
                         .foregroundColor(.recordText)
                     Spacer()
-                    Text("@amir")
+                    Text(username)
                         .font(.sans(11, .medium))
                         .foregroundStyle(Color.recordMuted)
+                    Button {
+                        Task { await logOut() }
+                    } label: {
+                        Text("Log out")
+                            .font(.sans(11, .medium))
+                            .foregroundStyle(Color.recordGreen)
+                    }
+                    .buttonStyle(.plain)
                 }
                 
                 //DATELINE
@@ -118,10 +129,35 @@ struct ContentView: View {
                 Spacer()
             }
             .padding(20)
+        }.task {
+            await loadProfile()
+        }
+    }
+    
+    func loadProfile() async {
+        do {
+            let userID = try await supabase.auth.session.user.id
+            let profile: Profile = try await supabase
+                .from("profiles")
+                .select()
+                .eq("id", value: userID)
+                .single()
+                .execute()
+                .value
+            username = profile.username
+        } catch {
+            print("Failed to load profile: \(error)")
+        }
+    }
+    
+    func logOut() async {
+        do {
+            try await supabase.auth.signOut()
+        } catch {
+            print("Logout failed: \(error)")
         }
     }
 }
-        
 #Preview {
     ContentView()
 }

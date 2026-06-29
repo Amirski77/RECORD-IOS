@@ -8,7 +8,7 @@
 import SwiftUI
 import Supabase
 
-struct Profile: Encodable {
+struct Profile: Codable {
     let id: UUID
     let username: String
 }
