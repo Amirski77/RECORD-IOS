@@ -58,7 +58,7 @@ struct ContentView: View {
                     Button {
                         //we'll wire this up later
                     } label: {
-                        Text("Choose a song →")
+                        Text("Choose a song  →")
                             .font(.sans(13.5, .bold))
                             .foregroundStyle(.black)
                             .padding(.horizontal, 20)
