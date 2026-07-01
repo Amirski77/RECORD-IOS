@@ -30,7 +30,6 @@ struct PostConfirmView: View {
     @State private var note = ""
     @State private var isPosting = false
     @State private var errorMessage: String?
-    @State private var didPost = false
 
     // This lets us close this screen (pop back) after a successful post.
     @Environment(\.dismiss) private var dismiss
@@ -155,7 +154,6 @@ struct PostConfirmView: View {
                 .execute()
 
             // 5. Success — close this screen. (Feed comes in step 3.)
-            didPost = true
             dismiss()
 
         } catch {
