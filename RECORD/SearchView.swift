@@ -46,32 +46,33 @@ struct SearchView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 4) {
                         ForEach(results) { song in
-                            HStack(spacing: 12) {
-                                AsyncImage(url: URL(string: song.artworkUrl100 ?? "")) { image in image.resizable()
-                                } placeholder: {
-                                    Color.recordSurface
+                            NavigationLink {
+                                PostConfirmView(song: song)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    AsyncImage(url: URL(string: song.artworkUrl100 ?? "")) { image in image.resizable()
+                                    } placeholder: {
+                                        Color.recordSurface
+                                    }
+                                    .frame(width: 52, height: 52)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(song.trackName)
+                                            .font(.sans(15, .medium))
+                                            .foregroundStyle(Color.recordText)
+                                            .lineLimit(1)
+                                        Text(song.artistName)
+                                            .font(.sans(13))
+                                            .foregroundStyle(Color.recordMuted)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
                                 }
-                                .frame(width: 52, height: 52)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(song.trackName)
-                                        .font(.sans(15, .medium))
-                                        .foregroundStyle(Color.recordText)
-                                        .lineLimit(1)
-                                    Text(song.artistName)
-                                        .font(.sans(13))
-                                        .foregroundStyle(Color.recordMuted)
-                                        .lineLimit(1)
-                                }
-                                Spacer()
+                                .padding(.vertical, 6)
+                                .contentShape(Rectangle())
                             }
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                // we'll handle "select this song" next step
-                                print("Tapped: \(song.trackName)")
-                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -83,5 +84,7 @@ struct SearchView: View {
     }
 }
 #Preview {
-    SearchView()
+    NavigationStack {
+        SearchView()
+    }
 }
