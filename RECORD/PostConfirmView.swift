@@ -158,7 +158,13 @@ struct PostConfirmView: View {
             path = NavigationPath()
             
         } catch {
-            errorMessage = error.localizedDescription
+            // If the DB rejected a second post for today (the unique index),
+            // show the friendly message instead of the raw Postgres error.
+            if "\(error)".contains("one_post_per_utc_day") {
+                errorMessage = "You've already posted today. Come back tomorrow."
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
