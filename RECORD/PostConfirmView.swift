@@ -166,7 +166,10 @@ struct PostConfirmView: View {
     // For now "today" = start of the current UTC day. This is a SIMPLER
     // boundary than your web app's 4am-Almaty rule — read the note after.
     func hasPostedToday(userID: UUID) async throws -> Bool {
-        let startOfDay = Calendar.current.startOfDay(for: Date())
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.timeZone = TimeZone(identifier: "UTC")!
+        let startOfDay = utcCalendar.startOfDay(for: Date())
+        
         let iso = ISO8601DateFormatter().string(from: startOfDay)
 
         let rows: [PostRow] = try await supabase

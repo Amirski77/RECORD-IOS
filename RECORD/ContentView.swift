@@ -13,6 +13,20 @@ struct ContentView: View {
     @State private var username = "..."
     @State private var posts: [FeedPost] = []
     @State private var path = NavigationPath()
+    
+    private var todatDateline: String {
+        let f = DateFormatter()
+        f.dateFormat = "EEE · dd MMM yyyy"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f.string(from: Date()).uppercased()
+    }
+    private var todayShort: String {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM d"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f.string(from: Date())
+    }
+    
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
@@ -49,7 +63,7 @@ struct ContentView: View {
                             .tracking(2)
                             .foregroundStyle(Color.recordDim)
                         Spacer()
-                        Text("THU · 18 JUN 2026")
+                        Text(todatDateline)
                             .font(.sans(10, .medium))
                             .tracking(2)
                             .foregroundStyle(Color.recordDim)
@@ -99,7 +113,7 @@ struct ContentView: View {
                             .tracking(1)
                             .foregroundStyle(Color.recordText)
                         Spacer()
-                        Text("June 18")
+                        Text(todayShort)
                             .font(.sans(10, .medium))
                             .foregroundStyle(Color.recordDim)
                     }

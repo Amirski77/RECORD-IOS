@@ -10,7 +10,9 @@ import Supabase
 
 func fetchTodayFeed() async -> [FeedPost] {
     // Start of today, in UTC
-    let startOfDayUTC = Calendar.current.startOfDay(for: Date())
+    var utcCalendar = Calendar(identifier: .gregorian)
+    utcCalendar.timeZone = TimeZone(identifier: "UTC")!
+    let startOfDayUTC = utcCalendar.startOfDay(for: Date())
     let iso = ISO8601DateFormatter().string(from: startOfDayUTC)
     
     do {
