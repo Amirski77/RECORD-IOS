@@ -14,17 +14,11 @@ struct ContentView: View {
     @State private var posts: [FeedPost] = []
     @State private var path = NavigationPath()
     
-    private var todatDateline: String {
+    private var todayDateline: String {
         let f = DateFormatter()
         f.dateFormat = "EEE · dd MMM yyyy"
         f.timeZone = TimeZone(identifier: "UTC")
         return f.string(from: Date()).uppercased()
-    }
-    private var todayShort: String {
-        let f = DateFormatter()
-        f.dateFormat = "MMMM d"
-        f.timeZone = TimeZone(identifier: "UTC")
-        return f.string(from: Date())
     }
     
     var body: some View {
@@ -63,7 +57,7 @@ struct ContentView: View {
                             .tracking(2)
                             .foregroundStyle(Color.recordDim)
                         Spacer()
-                        Text(todatDateline)
+                        Text(todayDateline)
                             .font(.sans(10, .medium))
                             .tracking(2)
                             .foregroundStyle(Color.recordDim)
@@ -82,6 +76,8 @@ struct ContentView: View {
                         Text("What are you playing today?")
                             .font(.display(24, .bold))
                             .foregroundStyle(Color.recordText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                         
                         NavigationLink(value: "search") {
                             Text("Choose a song  →")
@@ -105,18 +101,12 @@ struct ContentView: View {
                             .frame(width: 4)
                         , alignment: .leading
                     )
-                    
+                    VStack(alignment: .leading, spacing: 12) {
                     //TODAY'S RECORDS heading
-                    HStack {
                         Text("TODAY'S RECORDS")
                             .font(.display(16, .bold))
                             .tracking(1)
                             .foregroundStyle(Color.recordText)
-                        Spacer()
-                        Text(todayShort)
-                            .font(.sans(10, .medium))
-                            .foregroundStyle(Color.recordDim)
-                    }
                     Rectangle()
                         .fill(Color.recordDim.opacity(0.3))
                         .frame(height: 1)
@@ -191,8 +181,9 @@ struct ContentView: View {
                         }
                     }
                 }
-                .padding(20)
-            }
+            }   // ← this closes the OUTER VStack
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
             .navigationDestination(for: String.self) { value in
                 if value == "search" {
                     SearchView(path: $path)
@@ -201,6 +192,7 @@ struct ContentView: View {
             .navigationDestination(for: Song.self) { song in
                 PostConfirmView(song: song, path: $path)
             }
+        }
         }
         .task {
             await loadProfile()
