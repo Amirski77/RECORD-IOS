@@ -11,8 +11,10 @@ import Supabase
 
 struct ContentView: View {
     @State private var username = "..."
+    @State private var posts: [FeedPost] = []
+    @State private var path = NavigationPath()
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ZStack {
                 //Full-screen dark background
                 Color.recordBG
@@ -67,9 +69,7 @@ struct ContentView: View {
                             .font(.display(24, .bold))
                             .foregroundStyle(Color.recordText)
                         
-                        NavigationLink {
-                            SearchView()
-                        } label: {
+                        NavigationLink(value: "search") {
                             Text("Choose a song  →")
                                 .font(.sans(13.5, .bold))
                                 .foregroundStyle(.black)
@@ -107,36 +107,102 @@ struct ContentView: View {
                         .fill(Color.recordDim.opacity(0.3))
                         .frame(height: 1)
                     
-                    // EMPTY STATE
-                    VStack(spacing: 8) {
-                        Text("00")
-                            .font(.display(72, .extraBold))
-                            .foregroundStyle(Color.recordSurface)
-                        Text("No records yet today.")
-                            .font(.display(21, .bold))
-                            .foregroundStyle(Color.recordText)
-                        Text("The edition fills as your friends drop their song. Post yours and be the first line.")
-                            .font(.sans(13))
-                            .foregroundStyle(Color.recordMuted)
-                            .multilineTextAlignment(.center)
-                        Text("ONE SONG · ONE DAY · RESETS 4AM")
-                            .font(.sans(10, .medium))
-                            .tracking(2)
-                            .foregroundStyle(Color.recordDim)
-                            .padding(.top, 8)
+                    // FEED — or empty state if no posts yet
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                    if posts.isEmpty {
+                        VStack(spacing: 8) {
+                            Text("00")
+                                .font(.display(72, .extraBold))
+                                .foregroundStyle(Color.recordSurface)
+                            Text("No records yet today.")
+                                .font(.display(21, .bold))
+                                .foregroundStyle(Color.recordText)
+                            Text("The edition fills as your friends drop their song. Post yours and be the first line.")
+                                .font(.sans(13))
+                                .foregroundStyle(Color.recordMuted)
+                                .multilineTextAlignment(.center)
+                            Text("ONE SONG · ONE DAY · RESETS MIDNIGHT UTC")
+                                .font(.sans(10, .medium))
+                                .tracking(2)
+                                .foregroundStyle(Color.recordDim)
+                                .padding(.top, 8)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 40)
+                    } else {
+                        ForEach(posts) { post in
+                            HStack(spacing: 12) {
+                                // album art
+                                AsyncImage(url: URL(string: post.album_art_url)) { image in
+                                    image.resizable()
+                                } placeholder: {
+                                    Color.recordSurface
+                                }
+                                .frame(width: 56, height: 56)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                                // text column
+                                VStack(alignment: .leading, spacing: 3) {
+                                    // username — the NEW twist: comes through the nested profile
+                                    Text(post.profiles.username)
+                                        .font(.sans(11, .medium))
+                                        .tracking(0.5)
+                                        .foregroundStyle(Color.recordGreen)
+
+                                    Text(post.track_name)
+                                        .font(.sans(15, .medium))
+                                        .foregroundStyle(Color.recordText)
+                                        .lineLimit(1)
+
+                                    Text(post.artist_name)
+                                        .font(.sans(13))
+                                        .foregroundStyle(Color.recordMuted)
+                                        .lineLimit(1)
+
+                                    // optional note — only shows if there is one
+                                    if let note = post.note, !note.isEmpty {
+                                        Text(note)
+                                            .font(.sans(13))
+                                            .foregroundStyle(Color.recordMuted)
+                                            .padding(.top, 2)
+                                    }
+                                }
+
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                        }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 40)
-                    
-                    Spacer()
+                        }
+                    }
                 }
                 .padding(20)
-            }.task {
-                await loadProfile()
+            }
+            .navigationDestination(for: String.self) { value in
+                if value == "search" {
+                    SearchView(path: $path)
+                }
+            }
+            .navigationDestination(for: Song.self) { song in
+                PostConfirmView(song: song, path: $path)
             }
         }
+        .task {
+            await loadProfile()
+            posts = await fetchTodayFeed()
+        }
+        .onChange(of: path) { _, newPath in
+            // When the path goes back to empty, we've landed home - reload the feed.
+            if newPath.isEmpty {
+                Task {
+                    posts = await fetchTodayFeed()
+                }
+            }
+            
+        }
     }
-    
+
     func loadProfile() async {
         do {
             let userID = try await supabase.auth.session.user.id

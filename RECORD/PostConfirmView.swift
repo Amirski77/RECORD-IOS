@@ -25,7 +25,8 @@ struct NewPost: Encodable {
 }
 
 struct PostConfirmView: View {
-    let song: Song              // the song that was tapped on the search screen
+    let song: Song
+    @Binding var path: NavigationPath
 
     @State private var note = ""
     @State private var isPosting = false
@@ -153,9 +154,9 @@ struct PostConfirmView: View {
                 .insert(newPost)
                 .execute()
 
-            // 5. Success — close this screen. (Feed comes in step 3.)
-            dismiss()
-
+            // 5. Success — pop all the way home to the feed.
+            path = NavigationPath()
+            
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -194,7 +195,9 @@ struct PostRow: Decodable {
             artworkUrl100: "https://via.placeholder.com/100",
             previewUrl: nil,
             trackViewUrl: nil
-        ))
+        ),
+        path: .constant(NavigationPath())
+        )
     }
 }
 

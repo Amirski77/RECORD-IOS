@@ -8,7 +8,7 @@
 import Foundation
 import Supabase
 
-func fetchTodatFeed() async -> [FeedPost] {
+func fetchTodayFeed() async -> [FeedPost] {
     // Start of today, in UTC
     let startOfDayUTC = Calendar.current.startOfDay(for: Date())
     let iso = ISO8601DateFormatter().string(from: startOfDayUTC)
@@ -18,7 +18,7 @@ func fetchTodatFeed() async -> [FeedPost] {
             .from("posts")
             .select("id, track_name, artist_name, album_art_url, note, created_at, profiles(username)")
             .gte("created_at", value: iso) // today only
-            .order("created_at, ascending: false") // newest first
+            .order("created_at", ascending: false) // newest first
             .execute()
             .value
         return posts

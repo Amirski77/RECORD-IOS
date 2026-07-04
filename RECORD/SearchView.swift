@@ -12,6 +12,7 @@ struct SearchView: View {
     @State private var query = ""
     @State private var results: [Song] = []
     @State private var searchTask: Task<Void, Never>?
+    @Binding var path: NavigationPath
     
     var body: some View {
         ZStack {
@@ -46,9 +47,7 @@ struct SearchView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 4) {
                         ForEach(results) { song in
-                            NavigationLink {
-                                PostConfirmView(song: song)
-                            } label: {
+                            NavigationLink(value: song) {
                                 HStack(spacing: 12) {
                                     AsyncImage(url: URL(string: song.artworkUrl100 ?? "")) { image in image.resizable()
                                     } placeholder: {
@@ -85,6 +84,6 @@ struct SearchView: View {
 }
 #Preview {
     NavigationStack {
-        SearchView()
+        SearchView(path: .constant(NavigationPath()))
     }
 }
