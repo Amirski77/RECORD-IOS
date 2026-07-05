@@ -31,6 +31,7 @@ struct PostConfirmView: View {
     @State private var note = ""
     @State private var isPosting = false
     @State private var errorMessage: String?
+    @StateObject private var audio = AudioPlayer()
 
     // This lets us close this screen (pop back) after a successful post.
     @Environment(\.dismiss) private var dismiss
@@ -70,6 +71,27 @@ struct PostConfirmView: View {
                     Text(song.artistName)
                         .font(.sans(15))
                         .foregroundStyle(Color.recordMuted)
+                }
+                
+                // PLAY PREVIEW
+                if let preview = song.previewUrl {
+                    Button {
+                        audio.toggle(urlString: preview)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image( systemName: audio.currentlyPlayingURL == preview ? "pause.fill" : "play.fill")
+                                .font(.system(size: 13))
+                            Text(audio.currentlyPlayingURL == preview ? "Pause" : "Play preview")
+                                .font(.sans(13, .medium))
+                        }
+                        .foregroundStyle(Color.recordGreen)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .overlay(
+                            Capsule().stroke(Color.recordGreen, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 // OPTIONAL NOTE — matches your web app's 280-char note field.

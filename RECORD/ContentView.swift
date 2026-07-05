@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var username = "..."
     @State private var posts: [FeedPost] = []
     @State private var path = NavigationPath()
+    @StateObject private var audio = AudioPlayer()
     
     private var todayDateline: String {
         let f = DateFormatter()
@@ -138,13 +139,30 @@ struct ContentView: View {
                         ForEach(posts) { post in
                             HStack(spacing: 12) {
                                 // album art
-                                AsyncImage(url: URL(string: post.album_art_url)) { image in
-                                    image.resizable()
-                                } placeholder: {
-                                    Color.recordSurface
+                                ZStack {
+                                    AsyncImage(url: URL(string: post.album_art_url)) { image in
+                                        image.resizable()
+                                    } placeholder: {
+                                        Color.recordSurface
+                                    }
+                                    .frame(width: 56, height: 56)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    
+                                    //Only show a play button if this post has a preview URL
+                                    if let preview = post.preview_url {
+                                        Button {
+                                            audio.toggle(urlString: preview)
+                                        } label: {
+                                            Image(systemName: audio.currentlyPlayingURL == preview ?  "pause.fill": "play.fill")
+                                                .font(.system(size: 16))
+                                                .foregroundStyle(.white)
+                                                .frame(width: 56, height: 56)
+                                                .background(Color.black.opacity(0.45))
+                                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
-                                .frame(width: 56, height: 56)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
 
                                 // text column
                                 VStack(alignment: .leading, spacing: 3) {

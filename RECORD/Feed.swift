@@ -14,11 +14,11 @@ func fetchTodayFeed() async -> [FeedPost] {
     utcCalendar.timeZone = TimeZone(identifier: "UTC")!
     let startOfDayUTC = utcCalendar.startOfDay(for: Date())
     let iso = ISO8601DateFormatter().string(from: startOfDayUTC)
-    
+
     do {
         let posts: [FeedPost] = try await supabase
             .from("posts")
-            .select("id, track_name, artist_name, album_art_url, note, created_at, profiles(username)")
+            .select("id, track_name, artist_name, album_art_url, preview_url, note, created_at, profiles(username)")
             .gte("created_at", value: iso) // today only
             .order("created_at", ascending: false) // newest first
             .execute()
