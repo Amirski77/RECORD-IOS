@@ -46,6 +46,7 @@ struct PostConfirmView: View {
         ZStack {
             Color.recordBG.ignoresSafeArea()
 
+            ScrollView {
             VStack(alignment: .leading, spacing: 20) {
 
                 Text("YOUR RECORD · TODAY")
@@ -133,8 +134,12 @@ struct PostConfirmView: View {
                 Spacer()
             }
             .padding(20)
+            }
         }
         .navigationBarBackButtonHidden(false)
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
     }
 
     // THE POST FUNCTION — this is your web app's /post route, in Swift.
