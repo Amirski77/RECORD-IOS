@@ -11,6 +11,7 @@ struct FeedPost: Identifiable, Decodable {
     let artist_name: String
     let album_art_url: String
     let preview_url: String?
+    let apple_music_url: String?
     let note: String?
     let created_at: String
     let profiles: Poster     // ← the "who posted it" — explained below

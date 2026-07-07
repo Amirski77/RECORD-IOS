@@ -189,6 +189,28 @@ struct ContentView: View {
                                             .foregroundStyle(Color.recordMuted)
                                             .padding(.top, 2)
                                     }
+                                    
+                                    // APPLE MUSIC LINK — styled pill
+                                    if let appleURL = post.apple_music_url,
+                                       let url = URL(string: appleURL) {
+                                        Link(destination: url) {
+                                            HStack(spacing: 5) {
+                                                Image("apple-music-logo")
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(width: 14, height: 14)
+                                                Text("Apple Music")
+                                                    .font(.sans(11, .medium))
+                                                    .foregroundStyle(Color.recordText)
+                                            }
+                                            .padding(.vertical, 5)
+                                            .padding(.horizontal, 10)
+                                            .overlay(
+                                                Capsule().stroke(Color.recordGreen.opacity(0.5), lineWidth: 1)
+                                            )
+                                            .padding(.top, 5)
+                                        }
+                                    }
                                 }
 
                                 Spacer()
