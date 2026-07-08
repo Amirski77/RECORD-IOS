@@ -13,6 +13,9 @@ struct ContentView: View {
     @State private var username = "..."
     @State private var posts: [FeedPost] = []
     @State private var path = NavigationPath()
+    @State private var reactionCounts: [Int: [String: Int]] = [:] //[postID: [type: count]]
+    @State private var myReactionsByPost: [Int: String] = [:] //[postID: myType]
+    @State private var myUserID: String = ""
     @StateObject private var audio = AudioPlayer()
     
     private var todayDateline: String {
@@ -154,11 +157,9 @@ struct ContentView: View {
                                             audio.toggle(urlString: preview)
                                         } label: {
                                             Image(systemName: audio.currentlyPlayingURL == preview ?  "pause.fill": "play.fill")
-                                                .font(.system(size: 16))
-                                                .foregroundStyle(.white)
-                                                .frame(width: 56, height: 56)
-                                                .background(Color.black.opacity(0.45))
-                                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                                .font(.system(size: 24))
+                                                .foregroundColor(.white)
+                                                .shadow(radius: 3)
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -211,17 +212,46 @@ struct ContentView: View {
                                             .padding(.top, 5)
                                         }
                                     }
-                                }
+                                    // REACTIONS ROW
+                                    HStack(spacing: 6) {
+                                        ForEach(["fire", "heart", "sleepy", "poop"], id: \.self) { type in
+                                            let count = reactionCounts[post.id]?[type] ?? 0
+                                            let isMine = myReactionsByPost[post.id] == type
+                                            
+                                            Button {
+                                                Task { await tapReaction(postID: post.id, type: type) }
+                                            } label: {
+                                                HStack(spacing: 3) {
+                                                    Text(emoji(for: type))
+                                                        .font(.system(size: 15))
+                                                    if count >= 2 {
+                                                        Text("\(count)")
+                                                            .font(.sans(11, .medium))
+                                                            .foregroundStyle(Color.recordMuted)
+                                                    }
+                                                }
+                                                .padding(.vertical, 4)
+                                                .padding(.horizontal, 8)
+                                                .background(isMine ? Color.recordGreen.opacity(0.2) : Color.recordSurface2)
+                                                .clipShape(Capsule())
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+                                    .padding(.top, 6)
+                                }   // closes text column VStack
 
                                 Spacer()
-                            }
+                            }   // closes row HStack
                             .padding(.vertical, 8)
-                        }
-                    }
-                        }
-                    }
-                }
-            }   // ← this closes the OUTER VStack
+                        }   // closes ForEach(posts)
+                    }   // closes else
+                        }   // closes inner VStack (ScrollView content)
+                    }   // closes ScrollView
+                }   // closes TODAY'S RECORDS VStack
+                }   // closes outer VStack
+            }   // closes ZStack — padding + navigationDestination attach here
+            
             .padding(.horizontal, 24)
             .padding(.top, 20)
             .navigationDestination(for: String.self) { value in
@@ -233,19 +263,15 @@ struct ContentView: View {
                 PostConfirmView(song: song, path: $path)
             }
         }
-        }
         .task {
             await loadProfile()
-            posts = await fetchTodayFeed()
+            await loadFeedAndReactions()
         }
         .onChange(of: path) { _, newPath in
             // When the path goes back to empty, we've landed home - reload the feed.
             if newPath.isEmpty {
-                Task {
-                    posts = await fetchTodayFeed()
-                }
+                Task { await loadFeedAndReactions() }
             }
-            
         }
     }
 
@@ -262,6 +288,64 @@ struct ContentView: View {
             username = profile.username
         } catch {
             print("Failed to load profile: \(error)")
+        }
+    }
+    
+    func loadFeedAndReactions() async {
+        //1. get my user id
+        if myUserID.isEmpty {
+            if let uid = try? await supabase.auth.session.user.id {
+                myUserID = uid.uuidString.lowercased()
+            }
+        }
+        //2. load today's posts
+        posts = await fetchTodayFeed()
+        //3. load reactions for those posts, then shape them
+        let postIDs = posts.map { $0.id }
+        let reactions = await fetchReactions(postIDs: postIDs)
+        reactionCounts = countReactions(reactions)
+        myReactionsByPost = myReactions(reactions, myUserID: myUserID)
+    }
+    
+    func tapReaction(postID: Int, type: String) async {
+        guard !myUserID.isEmpty else { return }
+        
+        do {
+            let existing = myReactionsByPost[postID]
+            
+            if existing == type {
+                // tapped the same one → remove it
+                try await supabase
+                    .from("reactions")
+                    .delete()
+                    .eq("post_id", value: postID)
+                    .eq("user_id", value: myUserID)
+                    .execute()
+            } else if existing != nil {
+                // tapped a different one → switch it
+                try await supabase
+                    .from("reactions")
+                    .update(["type": type])
+                    .eq("post_id", value: postID)
+                    .eq("user_id", value: myUserID)
+                    .execute()
+            } else {
+                // no reaction yet → add it
+                let newReaction = NewReaction(post_id: postID, user_id: myUserID, type: type)
+                try await supabase
+                    .from("reactions")
+                    .insert(newReaction)
+                    .execute()
+            }
+            
+            //reload reactions so counts + my-pick refresh
+            let postIDs = posts.map { $0.id }
+            let reactions = await fetchReactions(postIDs: postIDs)
+            reactionCounts = countReactions(reactions)
+            myReactionsByPost = myReactions(reactions, myUserID: myUserID)
+            
+        } catch {
+            print("Reaction failed: \(error)")
         }
     }
     
