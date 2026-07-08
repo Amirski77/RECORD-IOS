@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var reactionCounts: [Int: [String: Int]] = [:] //[postID: [type: count]]
     @State private var myReactionsByPost: [Int: String] = [:] //[postID: myType]
     @State private var myUserID: String = ""
+    @State private var expandedReactionPost: Int? = nil   // which post's reaction picker is open
     @StateObject private var audio = AudioPlayer()
     
     private var todayDateline: String {
@@ -212,31 +213,73 @@ struct ContentView: View {
                                             .padding(.top, 5)
                                         }
                                     }
-                                    // REACTIONS ROW
+                                    // REACTIONS ROW — pinned +/× trigger, content swaps beside it
                                     HStack(spacing: 6) {
-                                        ForEach(["fire", "heart", "sleepy", "poop"], id: \.self) { type in
-                                            let count = reactionCounts[post.id]?[type] ?? 0
-                                            let isMine = myReactionsByPost[post.id] == type
-                                            
-                                            Button {
-                                                Task { await tapReaction(postID: post.id, type: type) }
-                                            } label: {
-                                                HStack(spacing: 3) {
-                                                    Text(emoji(for: type))
-                                                        .font(.system(size: 15))
-                                                    if count >= 2 {
-                                                        Text("\(count)")
-                                                            .font(.sans(11, .medium))
-                                                            .foregroundStyle(Color.recordMuted)
+                                        if expandedReactionPost == post.id {
+                                            // EXPANDED: one HStack picker that slides in
+                                            HStack(spacing: 6) {
+                                                ForEach(["fire", "heart", "sleepy", "poop"], id: \.self) { type in
+                                                    Button {
+                                                        Task {
+                                                            await tapReaction(postID: post.id, type: type)
+                                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                                expandedReactionPost = nil
+                                                            }
+                                                        }
+                                                    } label: {
+                                                        Text(emoji(for: type))
+                                                            .font(.system(size: 15))
+                                                            .padding(.vertical, 4)
+                                                            .padding(.horizontal, 6)
                                                     }
+                                                    .buttonStyle(.plain)
                                                 }
-                                                .padding(.vertical, 4)
-                                                .padding(.horizontal, 8)
-                                                .background(isMine ? Color.recordGreen.opacity(0.2) : Color.recordSurface2)
-                                                .clipShape(Capsule())
                                             }
-                                            .buttonStyle(.plain)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 3)
+                                            .background(Color.recordBG)
+                                            .clipShape(Capsule())
+                                            .overlay(Capsule().stroke(Color.recordSurface2, lineWidth: 1))
+                                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                                        } else {
+                                            // COLLAPSED: existing reaction counts
+                                            ForEach(["fire", "heart", "sleepy", "poop"], id: \.self) { type in
+                                                let count = reactionCounts[post.id]?[type] ?? 0
+                                                if count > 0 {
+                                                    let isMine = myReactionsByPost[post.id] == type
+                                                    HStack(spacing: 3) {
+                                                        Text(emoji(for: type))
+                                                            .font(.system(size: 15))
+                                                        if count >= 2 {
+                                                            Text("\(count)")
+                                                                .font(.sans(11, .medium))
+                                                                .foregroundStyle(Color.recordMuted)
+                                                        }
+                                                    }
+                                                    .padding(.vertical, 4)
+                                                    .padding(.horizontal, 8)
+                                                    .background(isMine ? Color.recordGreen.opacity(0.2) : Color.recordSurface2)
+                                                    .clipShape(Capsule())
+                                                }
+                                            }
                                         }
+
+                                        // ALWAYS-VISIBLE trigger: + rotates to ×
+                                        Button {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                expandedReactionPost = (expandedReactionPost == post.id) ? nil : post.id
+                                            }
+                                        } label: {
+                                            Image(systemName: "plus")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundStyle(expandedReactionPost == post.id ? Color.recordGreen : Color.recordMuted)
+                                                .rotationEffect(.degrees(expandedReactionPost == post.id ? 45 : 0))
+                                                .padding(.vertical, 5)
+                                                .padding(.horizontal, 9)
+                                                .background(Color.recordSurface2)
+                                                .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                     .padding(.top, 6)
                                 }   // closes text column VStack
