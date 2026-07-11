@@ -24,6 +24,11 @@ struct NewPost: Encodable {
     let note: String?
 }
 
+struct StreakRow: Decodable {
+    let current_streak: Int
+    let last_post_date: String?
+}
+
 struct PostConfirmView: View {
     let song: Song
     @Binding var path: NavigationPath
@@ -180,6 +185,9 @@ struct PostConfirmView: View {
                 .from("posts")
                 .insert(newPost)
                 .execute()
+            
+            // 4b. Update the streak.
+            try await updateStreak(userID: userID)
 
             // 5. Success — pop all the way home to the feed.
             path = NavigationPath()
@@ -215,6 +223,53 @@ struct PostConfirmView: View {
 
         return !rows.isEmpty
     }
+    
+    // +1 if posted yesterday, else reset
+    func updateStreak(userID : UUID) async throws {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let today = cal.startOfDay(for: Date())
+        
+        // read current streak + last post date
+        let row: StreakRow = try await supabase
+            .from("profiles")
+            .select("current_streak, last_post_date")
+            .eq("id", value: userID)
+            .single()
+            .execute()
+            .value
+        
+        // figure out the new streak
+        var newStreak = 1
+        if let lastStr = row.last_post_date {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyy-MM-dd"
+            fmt.timeZone = TimeZone(identifier: "UTC")!
+            if let last = fmt.date(from: lastStr) {
+                let yerterday = cal.date(byAdding: .day, value: -1, to: today)!
+                if cal.isDate(last, inSameDayAs: yerterday) {
+                    newStreak = row.current_streak + 1 // consecutive → +1
+                }
+                //else : gap → stays 1 (fresh start)
+            }
+        }
+        
+        //write it back
+        let todayStr: String = {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyy-MM-dd"
+            fmt.timeZone = TimeZone(identifier: "UTC")!
+            return fmt.string(from: today)
+        }()
+        
+        try await supabase
+            .from("profiles")
+            .update(["current_streak": String(newStreak), "last_post_date": todayStr])
+            .eq("id", value: userID)
+            .execute()
+    }
+    
+    
 }
 
 // Tiny struct just to decode the check above (we only need to know rows exist).
