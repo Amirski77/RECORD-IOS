@@ -294,10 +294,10 @@ struct ContentView: View {
                     }   // closes ScrollView
                 }   // closes TODAY'S RECORDS VStack
                 }   // closes outer VStack
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }   // closes ZStack — padding + navigationDestination attach here
-            
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
             .navigationDestination(for: String.self) { value in
                 if value == "search" {
                     SearchView(path: $path)
