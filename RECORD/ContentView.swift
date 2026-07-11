@@ -141,7 +141,7 @@ struct ContentView: View {
                         .padding(.top, 40)
                     } else {
                         ForEach(posts) { post in
-                            HStack(spacing: 12) {
+                            HStack(alignment: .top, spacing: 12) {
                                 // album art
                                 ZStack {
                                     AsyncImage(url: URL(string: post.album_art_url)) { image in
@@ -222,7 +222,7 @@ struct ContentView: View {
                                                     Button {
                                                         Task {
                                                             await tapReaction(postID: post.id, type: type)
-                                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            withAnimation(.spring(response: 0.35, dampingFraction: 0.95)) {
                                                                 expandedReactionPost = nil
                                                             }
                                                         }
@@ -266,7 +266,7 @@ struct ContentView: View {
 
                                         // ALWAYS-VISIBLE trigger: + rotates to ×
                                         Button {
-                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                                                 expandedReactionPost = (expandedReactionPost == post.id) ? nil : post.id
                                             }
                                         } label: {
@@ -274,6 +274,7 @@ struct ContentView: View {
                                                 .font(.system(size: 12, weight: .semibold))
                                                 .foregroundStyle(expandedReactionPost == post.id ? Color.recordGreen : Color.recordMuted)
                                                 .rotationEffect(.degrees(expandedReactionPost == post.id ? 45 : 0))
+                                                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: expandedReactionPost)
                                                 .padding(.vertical, 5)
                                                 .padding(.horizontal, 9)
                                                 .background(Color.recordSurface2)
