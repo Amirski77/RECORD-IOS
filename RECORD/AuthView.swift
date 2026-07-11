@@ -69,7 +69,7 @@ struct AuthView: View {
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.sans(12))
-                        .foregroundStyle(Color.recordGreen)
+                        .foregroundStyle(Color.recordError)
                 }
                 
                 // MAIN BUTTON

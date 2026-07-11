@@ -15,6 +15,7 @@ extension Color {
     static let recordText = Color(red: 0.957, green: 0.953, blue: 0.941) // #f4f3f0
     static let recordMuted = Color(red: 0.54, green: 0.54, blue: 0.54)   // #8a8a8a
     static let recordDim = Color(red: 0.435, green: 0.435, blue: 0.435)  // #6f6f6f
+    static let recordError = Color(red: 0.945, green: 0.37, blue: 0.42)
 }
 
 extension Font {

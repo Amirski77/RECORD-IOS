@@ -17,7 +17,8 @@ import Combine
 class AudioPlayer: ObservableObject {
     // The actual iOS audio player (Apple's AVFoundation).
     private var player: AVPlayer?
-    // Which preview URL is playing right now? nil = nothing playing.
+    // keeps the "played to end" so we can remove it later.
+    private var endObserver: NSObjectProtocol?
     // @Published = "when this changes, tell every view watching."
     @Published var currentlyPlayingURL: String?
     
@@ -42,9 +43,10 @@ class AudioPlayer: ObservableObject {
         }
 
         // Otherwise: stop whatever was playing, start this one.
+        stop()   // clean up any existing player + observer first
         player = AVPlayer(url: url)
         // when the preview reaches its end, reset the button
-        NotificationCenter.default.addObserver(
+        endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: player?.currentItem,
             queue: .main
@@ -57,6 +59,10 @@ class AudioPlayer: ObservableObject {
     }
 
     func stop() {
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+            self.endObserver = nil
+        }
         player?.pause()
         player = nil
         currentlyPlayingURL = nil
