@@ -50,13 +50,13 @@ struct ContentView: View {
                             .foregroundColor(.recordText)
                         Spacer()
                         Text(username)
-                            .font(.sans(11, .medium))
+                            .font(.sans(13, .medium))
                             .foregroundStyle(Color.recordMuted)
                         Button {
                             Task { await logOut() }
                         } label: {
                             Text("Log out")
-                                .font(.sans(11, .medium))
+                                .font(.sans(13, .medium))
                                 .foregroundStyle(Color.recordGreen)
                         }
                         .buttonStyle(.plain)
@@ -198,12 +198,12 @@ struct ContentView: View {
                                         .foregroundStyle(Color.recordGreen)
 
                                     Text(post.track_name)
-                                        .font(.sans(15, .medium))
+                                        .font(.display(19, .bold))
                                         .foregroundStyle(Color.recordText)
                                         .lineLimit(1)
 
                                     Text(post.artist_name)
-                                        .font(.sans(13))
+                                        .font(.sans(15))
                                         .foregroundStyle(Color.recordMuted)
                                         .lineLimit(1)
 
@@ -223,9 +223,9 @@ struct ContentView: View {
                                                 Image("apple-music-logo")
                                                     .resizable()
                                                     .scaledToFit()
-                                                    .frame(width: 14, height: 14)
+                                                    .frame(width: 16, height: 16)
                                                 Text("Apple Music")
-                                                    .font(.sans(11, .medium))
+                                                    .font(.sans(13, .medium))
                                                     .foregroundStyle(Color.recordText)
                                             }
                                             .padding(.vertical, 5)
@@ -251,7 +251,7 @@ struct ContentView: View {
                                                         }
                                                     } label: {
                                                         Text(emoji(for: type))
-                                                            .font(.system(size: 15))
+                                                            .font(.system(size: 17))
                                                             .padding(.vertical, 4)
                                                             .padding(.horizontal, 6)
                                                     }
@@ -275,7 +275,7 @@ struct ContentView: View {
                                                             .font(.system(size: 15))
                                                         if count >= 2 {
                                                             Text("\(count)")
-                                                                .font(.sans(11, .medium))
+                                                                .font(.sans(13, .medium))
                                                                 .foregroundStyle(Color.recordMuted)
                                                         }
                                                     }
@@ -294,7 +294,7 @@ struct ContentView: View {
                                             }
                                         } label: {
                                             Image(systemName: "plus")
-                                                .font(.system(size: 12, weight: .semibold))
+                                                .font(.system(size: 14, weight: .semibold))
                                                 .foregroundStyle(expandedReactionPost == post.id ? Color.recordGreen : Color.recordMuted)
                                                 .rotationEffect(.degrees(expandedReactionPost == post.id ? 45 : 0))
                                                 .animation(.spring(response: 0.35, dampingFraction: 0.85), value: expandedReactionPost)
