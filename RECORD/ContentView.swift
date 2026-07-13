@@ -9,6 +9,12 @@ import SwiftUI
 internal import Auth
 import Supabase
 
+struct ProfileWithStreak: Decodable {
+    let username: String
+    let current_streak: Int
+    let last_post_date: String?
+}
+
 struct ContentView: View {
     @State private var username = "..."
     @State private var posts: [FeedPost] = []
@@ -17,6 +23,7 @@ struct ContentView: View {
     @State private var myReactionsByPost: [Int: String] = [:] //[postID: myType]
     @State private var myUserID: String = ""
     @State private var expandedReactionPost: Int? = nil   // which post's reaction picker is open
+    @State private var streak: Streak = Streak(count: 0, lastPostDate: nil)
     @StateObject private var audio = AudioPlayer()
     
     private var todayDateline: String {
@@ -73,11 +80,24 @@ struct ContentView: View {
                     
                     //THE GREEN "POST" CARD
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("YOUR RECORD · TODAY")
-                            .font(.sans(10, .medium))
-                            .tracking(1.5)
-                            .foregroundStyle(Color.recordGreen)
-                        
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("YOUR RECORD · TODAY")
+                                .font(.sans(10, .medium))
+                                .tracking(1.5)
+                                .foregroundStyle(Color.recordGreen)
+                            Spacer()
+                            if streak.effectiveCount > 0 {
+                                HStack {
+                                    Text("\(streak.effectiveCount)")
+                                        .font(.display(17, .extraBold))
+                                        .foregroundStyle(streakNumberColor)
+                                    Text("DAY STREAK")
+                                        .font(.sans(9.5, .medium))
+                                        .tracking(1)
+                                        .foregroundStyle(streakLabelColor)
+                                }
+                            }
+                        }
                         Text("What are you playing today?")
                             .font(.display(24, .bold))
                             .foregroundStyle(Color.recordText)
@@ -154,15 +174,18 @@ struct ContentView: View {
                                     
                                     //Only show a play button if this post has a preview URL
                                     if let preview = post.preview_url {
-                                        Button {
-                                            audio.toggle(urlString: preview)
-                                        } label: {
-                                            Image(systemName: audio.currentlyPlayingURL == preview ?  "pause.fill": "play.fill")
-                                                .font(.system(size: 24))
-                                                .foregroundColor(.white)
-                                                .shadow(radius: 3)
-                                        }
-                                        .buttonStyle(.plain)
+                                        let isPlaying = audio.currentlyPlayingURL == preview
+                                        Image(systemName: isPlaying ? "pause.fill": "play.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(.white)
+                                            .opacity(isPlaying ? 1.0 : 0.4)
+                                            .shadow(radius: 3)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if let preview = post.preview_url {
+                                        audio.toggle(urlString: preview)
                                     }
                                 }
 
@@ -314,7 +337,9 @@ struct ContentView: View {
         .onChange(of: path) { _, newPath in
             // When the path goes back to empty, we've landed home - reload the feed.
             if newPath.isEmpty {
-                Task { await loadFeedAndReactions() }
+                Task {
+                    await loadProfile()
+                    await loadFeedAndReactions() }
             }
         }
     }
@@ -322,14 +347,24 @@ struct ContentView: View {
     func loadProfile() async {
         do {
             let userID = try await supabase.auth.session.user.id
-            let profile: Profile = try await supabase
+            let profile: ProfileWithStreak = try await supabase
                 .from("profiles")
-                .select()
+                .select("username, current_streak, last_post_date")
                 .eq("id", value: userID)
                 .single()
                 .execute()
                 .value
             username = profile.username
+            
+            var lastDate: Date? = nil
+            if let lastStr = profile.last_post_date {
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd"
+                fmt.timeZone = TimeZone(identifier: "UTC")!
+                lastDate = fmt.date(from: lastStr)
+            }
+            streak = Streak(count: profile.current_streak, lastPostDate: lastDate)
+            
         } catch {
             print("Failed to load profile: \(error)")
         }
@@ -398,6 +433,24 @@ struct ContentView: View {
             try await supabase.auth.signOut()
         } catch {
             print("Logout failed: \(error)")
+        }
+    }
+    
+    var streakNumberColor: Color {
+        switch streak.state {
+        case .active: return Color(red: 0.918, green: 1.0, blue: 0.945)
+        case .dayOne: return Color(red: 0.949, green: 0.945, blue: 0.933)
+        case .atRisk: return Color(red: 1.0, green: 0.706, blue: 0.329)
+        case .broken: return Color(red: 0.49, green: 0.486, blue: 0.471)
+        }
+    }
+
+    var streakLabelColor: Color {
+        switch streak.state {
+        case .active: return Color(red: 0.561, green: 0.851, blue: 0.675)
+        case .dayOne: return Color(red: 0.541, green: 0.541, blue: 0.541)
+        case .atRisk: return Color(red: 0.659, green: 0.463, blue: 0.247)
+        case .broken: return Color(red: 0.353, green: 0.353, blue: 0.353)
         }
     }
 }
