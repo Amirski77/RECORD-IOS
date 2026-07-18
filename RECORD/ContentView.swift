@@ -49,9 +49,16 @@ struct ContentView: View {
                             .tracking(3)
                             .foregroundColor(.recordText)
                         Spacer()
-                        Text(username)
-                            .font(.sans(13, .medium))
-                            .foregroundStyle(Color.recordMuted)
+                        NavigationLink(value: ProfileRoute( userID: myUserID, username: username, isMe: true)) {
+                            HStack(spacing: 8) {
+                                AvatarView(username: username, size: 28)
+                                Text(username)
+                                    .font(.sans(13, .medium))
+                                    .foregroundStyle(Color.recordMuted)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        
                         Button {
                             Task { await logOut() }
                         } label: {
@@ -192,21 +199,24 @@ struct ContentView: View {
                                 // text column
                                 VStack(alignment: .leading, spacing: 3) {
                                     // username — the NEW twist: comes through the nested profile
-                                    Text(post.profiles.username)
-                                        .font(.sans(11, .medium))
-                                        .tracking(0.5)
-                                        .foregroundStyle(Color.recordGreen)
-
+                                    NavigationLink(value: ProfileRoute(userID: post.user_id, username: post.profiles.username, isMe: post.user_id == myUserID)) {
+                                        Text(post.profiles.username)
+                                            .font(.sans(11, .medium))
+                                            .tracking(0.5)
+                                            .foregroundStyle(Color.recordGreen)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
                                     Text(post.track_name)
                                         .font(.display(19, .bold))
                                         .foregroundStyle(Color.recordText)
                                         .lineLimit(1)
-
+                                    
                                     Text(post.artist_name)
                                         .font(.sans(15))
                                         .foregroundStyle(Color.recordMuted)
                                         .lineLimit(1)
-
+                                    
                                     // optional note — only shows if there is one
                                     if let note = post.note, !note.isEmpty {
                                         Text(note)
@@ -329,6 +339,9 @@ struct ContentView: View {
             .navigationDestination(for: Song.self) { song in
                 PostConfirmView(song: song, path: $path)
             }
+            .navigationDestination(for: ProfileRoute.self) { route in
+                ProfileView(userID: route.userID, username: route.username, isMe: route.isMe)
+            }
         }
         .task {
             await loadProfile()
@@ -347,6 +360,9 @@ struct ContentView: View {
     func loadProfile() async {
         do {
             let userID = try await supabase.auth.session.user.id
+            
+            myUserID = userID.uuidString.lowercased()
+            
             let profile: ProfileWithStreak = try await supabase
                 .from("profiles")
                 .select("username, current_streak, last_post_date")

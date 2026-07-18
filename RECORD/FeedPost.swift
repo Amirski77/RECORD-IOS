@@ -7,6 +7,7 @@ import Foundation
 
 struct FeedPost: Identifiable, Decodable {
     let id: Int              // the post's own id (bigint)
+    let user_id: String
     let track_name: String
     let artist_name: String
     let album_art_url: String
