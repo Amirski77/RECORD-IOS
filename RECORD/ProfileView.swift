@@ -26,6 +26,7 @@ struct ProfileView: View {
     @State private var totalRecords = 0
     @State private var bestStreak = 0
     @State private var loading = true
+    @StateObject private var audio = AudioPlayer()
 
     @Environment(\.dismiss) private var dismiss
 
@@ -109,6 +110,9 @@ struct ProfileView: View {
         .task {
             await load()
         }
+        .onDisappear {
+            audio.stop()
+        }
     }
 
     // STAT LINE
@@ -177,14 +181,31 @@ struct ProfileView: View {
                     .foregroundStyle(Color.recordText)
                     .frame(width: 32, alignment: .leading)
                 
-                // cover art
-                AsyncImage(url: URL(string: post.album_art_url)) { image in
+                // cover art - tappable to play
+                ZStack {
+                    AsyncImage(url: URL(string: post.album_art_url)) { image in
                     image.resizable()
                 } placeholder: {
                     Color.recordSurface
                 }
                 .frame(width: 56, height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: 5))
+                    
+                    if let preview = post.preview_url {
+                        let isPlaying = audio.currentlyPlayingURL == preview
+                        Image ( systemName: isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                            .opacity(isPlaying ? 1.0 : 0.4)
+                            .shadow(radius: 3)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if let preview = post.preview_url {
+                        audio.toggle(urlString: preview)
+                    }
+                }
                 
                 // track + artist + note
                 VStack(alignment: .leading, spacing: 3) {

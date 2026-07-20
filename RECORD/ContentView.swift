@@ -59,18 +59,10 @@ struct ContentView: View {
                         }
                         .buttonStyle(.plain)
                         
-                        Button {
-                            Task { await logOut() }
-                        } label: {
-                            Text("Log out")
-                                .font(.sans(13, .medium))
-                                .foregroundStyle(Color.recordGreen)
-                        }
-                        .buttonStyle(.plain)
                     }
                     
                     //DATELINE
-                    HStack {
+                    HStack (spacing: 12) {
                         Text("THE DAILY EDITION")
                             .font(.sans(10, .medium))
                             .tracking(2)
@@ -280,19 +272,24 @@ struct ContentView: View {
                                                 let count = reactionCounts[post.id]?[type] ?? 0
                                                 if count > 0 {
                                                     let isMine = myReactionsByPost[post.id] == type
-                                                    HStack(spacing: 3) {
-                                                        Text(emoji(for: type))
-                                                            .font(.system(size: 15))
-                                                        if count >= 2 {
-                                                            Text("\(count)")
-                                                                .font(.sans(13, .medium))
-                                                                .foregroundStyle(Color.recordMuted)
+                                                    Button {
+                                                        Task { await tapReaction(postID: post.id, type: type) }
+                                                    } label: {
+                                                        HStack(spacing: 3) {
+                                                            Text(emoji(for: type))
+                                                                .font(.system(size: 15))
+                                                            if count >= 2 {
+                                                                Text("\(count)")
+                                                                    .font(.sans(13, .medium))
+                                                                    .foregroundStyle(Color.recordMuted)
+                                                            }
                                                         }
+                                                        .padding(.vertical, 4)
+                                                        .padding(.horizontal, 8)
+                                                        .background(isMine ? Color.recordGreen.opacity(0.2) : Color.recordSurface2)
+                                                        .clipShape(Capsule())
                                                     }
-                                                    .padding(.vertical, 4)
-                                                    .padding(.horizontal, 8)
-                                                    .background(isMine ? Color.recordGreen.opacity(0.2) : Color.recordSurface2)
-                                                    .clipShape(Capsule())
+                                                    .buttonStyle(.plain)
                                                 }
                                             }
                                         }
