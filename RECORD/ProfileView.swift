@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Supabase
+import PhotosUI
 
 struct ProfileRoute: Hashable {
     let userID: String
@@ -26,6 +27,9 @@ struct ProfileView: View {
     @State private var totalRecords = 0
     @State private var bestStreak = 0
     @State private var loading = true
+    @State private var selectedItem: PhotosPickerItem? // what the user picked
+    @State private var avatarURL: String? // their current photo URL
+    @State private var uploading = false // upload in progress
     @StateObject private var audio = AudioPlayer()
 
     @Environment(\.dismiss) private var dismiss
@@ -39,7 +43,15 @@ struct ProfileView: View {
 
                     // ===== PROFILE HEADER =====
                     HStack(alignment: .top, spacing: 14) {
-                        AvatarView(username: username, size: 64)
+                        Group {
+                            if isMe {
+                                PhotosPicker(selection: $selectedItem, matching: .images) {
+                                    avatarImage
+                                }
+                            } else {
+                                avatarImage
+                            }
+                        }
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(username)
@@ -145,6 +157,23 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 40)
+    }
+    
+    // avatarImage
+    var avatarImage: some View {
+        Group {
+            if let avatarURL, let url = URL(string: avatarURL) {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    AvatarView(username: username, size: 64)
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(Circle())
+            } else {
+                AvatarView(username: username, size: 64)
+            }
+        }
     }
 
     // DIARY LIST (grouped by month)
