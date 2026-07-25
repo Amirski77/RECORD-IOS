@@ -18,7 +18,7 @@ func fetchTodayFeed() async -> [FeedPost] {
     do {
         let posts: [FeedPost] = try await supabase
             .from("posts")
-            .select("id, user_id, track_name, artist_name, album_art_url, preview_url, apple_music_url, note, created_at, profiles(username)")
+            .select("id, user_id, track_name, artist_name, album_art_url, preview_url, apple_music_url, spotify_url, note, created_at, profiles(username)")
             .gte("created_at", value: iso) // today only
             .order("created_at", ascending: false) // newest first
             .execute()

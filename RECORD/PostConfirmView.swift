@@ -21,6 +21,7 @@ struct NewPost: Encodable {
     let album_art_url: String
     let preview_url: String?
     let apple_music_url: String?
+    let spotify_url: String?
     let note: String?
 }
 
@@ -166,6 +167,9 @@ struct PostConfirmView: View {
                 errorMessage = "You've already posted today. Come back tomorrow."
                 return
             }
+            
+            // 2b. Look up the Spotify URL (fails gracefully if not found)
+            let spotifyURL = await fetchSpotifyURL(track: song.trackName, artist: song.artistName)
 
             // 3. Build the row. note → nil if empty (matches web's `note or None`).
             let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -177,6 +181,7 @@ struct PostConfirmView: View {
                 album_art_url: song.artworkUrl100 ?? "",
                 preview_url: song.previewUrl,
                 apple_music_url: song.trackViewUrl,
+                spotify_url: spotifyURL,
                 note: trimmedNote.isEmpty ? nil : trimmedNote
             )
 

@@ -231,27 +231,52 @@ struct ContentView: View {
                                             .padding(.top, 2)
                                     }
                                     
-                                    // APPLE MUSIC LINK — styled pill
-                                    if let appleURL = post.apple_music_url,
-                                       let url = URL(string: appleURL) {
-                                        Link(destination: url) {
-                                            HStack(spacing: 5) {
-                                                Image("apple-music-logo")
-                                                    .resizable()
-                                                    .scaledToFit()
-                                                    .frame(width: 16, height: 16)
-                                                Text("Apple Music")
-                                                    .font(.sans(13, .medium))
-                                                    .foregroundStyle(Color.recordText)
+                                    // MUSIC LINKS — wrapped together
+                                    HStack(spacing: 8) {
+                                        // APPLE MUSIC LINK
+                                        if let appleURL = post.apple_music_url,
+                                           let url = URL(string: appleURL) {
+                                            Link(destination: url) {
+                                                HStack(spacing: 5) {
+                                                    Image("apple-music-logo")
+                                                        .resizable()
+                                                        .scaledToFit()
+                                                        .frame(width: 16, height: 16)
+                                                    Text("Apple Music")
+                                                        .font(.sans(13, .medium))
+                                                        .foregroundStyle(Color.recordText)
+                                                }
+                                                .padding(.vertical, 5)
+                                                .padding(.horizontal, 10)
+                                                .overlay(
+                                                    Capsule().stroke(Color.recordGreen.opacity(0.5), lineWidth: 1)
+                                                )
                                             }
-                                            .padding(.vertical, 5)
-                                            .padding(.horizontal, 10)
-                                            .overlay(
-                                                Capsule().stroke(Color.recordGreen.opacity(0.5), lineWidth: 1)
-                                            )
-                                            .padding(.top, 5)
+                                        }
+                                        
+                                        // SPOTIFY LINK
+                                        if let spotifyURL = post.spotify_url,
+                                           let url = URL(string: spotifyURL) {
+                                            Link(destination: url) {
+                                                HStack(spacing: 5) {
+                                                    Image("spotify-logo")
+                                                        .resizable()
+                                                        .scaledToFit()
+                                                        .frame(width: 16, height: 16)
+                                                    Text("Spotify")
+                                                        .font(.sans(13, .medium))
+                                                }
+                                                .foregroundStyle(Color.recordText)
+                                                .padding(.vertical, 5)
+                                                .padding(.horizontal, 10)
+                                                .overlay(
+                                                    Capsule().stroke(Color.recordGreen.opacity(0.5), lineWidth: 1)
+                                                )
+                                            }
                                         }
                                     }
+                                    .padding(.top, 5)
+                                    
                                     // REACTIONS ROW — pinned +/× trigger, content swaps beside it
                                     HStack(spacing: 6) {
                                         if expandedReactionPost == post.id {
