@@ -30,6 +30,8 @@ struct ProfileView: View {
     @State private var selectedItem: PhotosPickerItem? // what the user picked
     @State private var avatarURL: String? // their current photo URL
     @State private var uploading = false // upload in progress
+    @State private var showAvatarOptions = false
+    @State private var showPhotoPicker = false
     @StateObject private var audio = AudioPlayer()
 
     @Environment(\.dismiss) private var dismiss
@@ -45,9 +47,12 @@ struct ProfileView: View {
                     HStack(alignment: .top, spacing: 14) {
                         Group {
                             if isMe {
-                                PhotosPicker(selection: $selectedItem, matching: .images) {
+                                Button {
+                                    showAvatarOptions = true
+                                } label: {
                                     avatarImage
                                 }
+                                .buttonStyle(.plain)
                             } else {
                                 avatarImage
                             }
@@ -125,6 +130,14 @@ struct ProfileView: View {
         .onDisappear {
             audio.stop()
         }
+        .onChange(of: selectedItem) { _, newItem in
+            Task { await uploadAvatar(newItem) }
+        }
+        .sheet(isPresented: $showAvatarOptions) {
+            avatarOptionsSheet
+                .presentationDetents([.height(360)])
+                .presentationBackground(Color.recordBG)
+        }
     }
 
     // STAT LINE
@@ -173,6 +186,63 @@ struct ProfileView: View {
             } else {
                 AvatarView(username: username, size: 64)
             }
+        }
+    }
+    
+    var avatarOptionsSheet: some View {
+        VStack(spacing: 24) {
+            // enlarged photo (or letter-circle) at top
+            Group {
+                if let avatarURL, let url = URL(string: avatarURL) {
+                    AsyncImage(url: url) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        AvatarView(username: username, size: 120)
+                    }
+                    .frame(width: 120, height: 120)
+                    .clipShape(Circle())
+                } else {
+                    AvatarView(username: username, size: 120)
+                }
+            }
+            .padding(.top, 32)
+
+            // buttons
+            VStack(spacing: 12) {
+                Button {
+                    showAvatarOptions = false
+                    showPhotoPicker = true
+                } label: {
+                    Text("Change Photo")
+                        .font(.sans(15, .bold))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.recordGreen)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
+                if avatarURL != nil {
+                    Button {
+                        showAvatarOptions = false
+                        Task { await removeAvatar() }
+                    } label: {
+                        Text("Delete Photo")
+                            .font(.sans(15, .medium))
+                            .foregroundStyle(Color.recordError)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .overlay(
+                                Capsule().stroke(Color.recordError.opacity(0.4), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
         }
     }
 
@@ -278,7 +348,7 @@ struct ProfileView: View {
         do {
             let row: ProfileFullRow = try await supabase
                 .from("profiles")
-                .select("current_streak, last_post_date, longest_streak")
+                .select("current_streak, last_post_date, longest_streak, avatar_url")
                 .eq("id", value: userID)
                 .single()
                 .execute()
@@ -293,10 +363,68 @@ struct ProfileView: View {
             }
             streak = Streak(count: row.current_streak, lastPostDate: lastDate)
             bestStreak = row.longest_streak
+            
+            avatarURL = row.avatar_url
         } catch {
             print("Profile load failed: \(error)")
         }
         loading = false
+    }
+    
+    func uploadAvatar(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+        uploading = true
+        defer { uploading = false }
+        
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                print("Couldn't load image data")
+                return
+            }
+             
+            let path = "\(userID).jpg"
+            try await supabase.storage
+                .from("avatars")
+                .upload(path, data: data, options: FileOptions(upsert: true))
+            
+            let publicURL = try supabase.storage
+                .from("avatars")
+                .getPublicURL(path: path)
+
+            let urlString = publicURL.absoluteString + "?v=\(Int(Date().timeIntervalSince1970))"
+
+            let updateData: [String: String] = ["avatar_url": urlString]
+            try await supabase
+                .from("profiles")
+                .update(updateData)
+                .eq("id", value: userID)
+                .execute()
+
+            avatarURL = urlString
+
+        } catch {
+            print("Avatar upload failed: \(error)")
+        }
+    }
+    
+    func removeAvatar() async {
+        do {
+            // clear the URL in the profile
+            try await supabase
+                .from("profiles")
+                .update(["avatar_url": nil as String?])
+                .eq("id", value: userID)
+                .execute()
+
+            // delete the file from storage
+            let _ = try? await supabase.storage
+                .from("avatars")
+                .remove(paths: ["\(userID).jpg"])
+
+            avatarURL = nil   // back to letter-circle
+        } catch {
+            print("Remove avatar failed: \(error)")
+        }
     }
 
     func logOut() async {
@@ -353,4 +481,5 @@ struct ProfileFullRow: Decodable {
     let current_streak: Int
     let last_post_date: String?
     let longest_streak: Int
+    let avatar_url: String?
 }

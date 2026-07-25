@@ -13,6 +13,7 @@ struct ProfileWithStreak: Decodable {
     let username: String
     let current_streak: Int
     let last_post_date: String?
+    let avatar_url: String?
 }
 
 struct ContentView: View {
@@ -24,6 +25,7 @@ struct ContentView: View {
     @State private var myUserID: String = ""
     @State private var expandedReactionPost: Int? = nil   // which post's reaction picker is open
     @State private var streak: Streak = Streak(count: 0, lastPostDate: nil)
+    @State private var avatarURL: String?
     @StateObject private var audio = AudioPlayer()
     
     private var todayDateline: String {
@@ -51,7 +53,19 @@ struct ContentView: View {
                         Spacer()
                         NavigationLink(value: ProfileRoute( userID: myUserID, username: username, isMe: true)) {
                             HStack(spacing: 8) {
-                                AvatarView(username: username, size: 28)
+                                Group {
+                                    if let avatarURL, let url = URL(string: avatarURL) {
+                                        AsyncImage(url: url) { image in
+                                            image.resizable().scaledToFill()
+                                        } placeholder: {
+                                            AvatarView(username: username, size: 28)
+                                        }
+                                        .frame(width: 28, height: 28)
+                                        .clipShape(Circle())
+                                    } else {
+                                        AvatarView(username: username, size: 28)
+                                    }
+                                }
                                 Text(username)
                                     .font(.sans(13, .medium))
                                     .foregroundStyle(Color.recordMuted)
@@ -362,12 +376,13 @@ struct ContentView: View {
             
             let profile: ProfileWithStreak = try await supabase
                 .from("profiles")
-                .select("username, current_streak, last_post_date")
+                .select("username, current_streak, last_post_date, avatar_url")
                 .eq("id", value: userID)
                 .single()
                 .execute()
                 .value
             username = profile.username
+            avatarURL = profile.avatar_url
             
             var lastDate: Date? = nil
             if let lastStr = profile.last_post_date {
