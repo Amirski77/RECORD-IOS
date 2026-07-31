@@ -94,32 +94,34 @@ struct ContentView: View {
                     
                     //THE GREEN "POST" CARD
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .firstTextBaseline) {
-                            Text("YOUR RECORD · TODAY")
-                                .font(.sans(10, .medium))
-                                .tracking(1.5)
-                                .foregroundStyle(Color.recordGreen)
-                            Spacer()
-                            if streak.effectiveCount > 0 {
-                                HStack {
-                                    Text("\(streak.effectiveCount)")
-                                        .font(.display(17, .extraBold))
-                                        .foregroundStyle(streakNumberColor)
-                                        .scaleEffect(streakPopped ? 1.3 : 1.0)
-                                    Text("DAY STREAK")
-                                        .font(.sans(9.5, .medium))
-                                        .tracking(1)
-                                        .foregroundStyle(streakLabelColor)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text("YOUR RECORD · TODAY")
+                                    .font(.sans(10, .medium))
+                                    .tracking(1.5)
+                                    .foregroundStyle(Color.recordGreen)
+                                Spacer()
+                                if streak.effectiveCount > 0 || streak.state == .broken {
+                                    HStack {
+                                        Text("\(streak.effectiveCount)")
+                                            .font(.display(17, .extraBold))
+                                            .foregroundStyle(streakNumberColor)
+                                            .scaleEffect(streakPopped ? 1.3 : 1.0)
+                                        Text("DAY STREAK")
+                                            .font(.sans(9.5, .medium))
+                                            .tracking(1)
+                                            .foregroundStyle(streakLabelColor)
+                                    }
                                 }
                             }
-                        }
-                        
-                        // NUDGE LINE - own line, right-aligned
-                        if let nudge = streakNudge {
-                            Text(nudge)
-                                .font(.sans(10.5))
-                                .foregroundStyle(streakLabelColor)
-                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            
+                            // NUDGE LINE - own line, right-aligned
+                            if let nudge = streakNudge {
+                                Text(nudge)
+                                    .font(.sans(10.5))
+                                    .foregroundStyle(streakLabelColor)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
                         }
                         
                         Text("What are you playing today?")
@@ -142,20 +144,33 @@ struct ContentView: View {
                     }
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.recordSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.082, green: 0.082, blue: 0.082),   // #151515
+                                Color(red: 0.063, green: 0.063, blue: 0.063)    // #101010
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .overlay(alignment: .leading) {
                         Rectangle()
                             .fill(Color.recordGreen)
                             .frame(width: 4)
-                        , alignment: .leading
+                    }
+                    
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Color(red: 0.137, green: 0.137, blue: 0.137), lineWidth: 1) // #232323
                     )
-                    VStack(alignment: .leading, spacing: 12) {
+                    
                     //TODAY'S RECORDS heading
-                        Text("TODAY'S RECORDS")
-                            .font(.display(16, .bold))
-                            .tracking(1)
-                            .foregroundStyle(Color.recordText)
+                    Text("TODAY'S RECORDS")
+                        .font(.display(16, .bold))
+                        .tracking(1)
+                        .foregroundStyle(Color.recordText)
                     Rectangle()
                         .fill(Color.recordDim.opacity(0.3))
                         .frame(height: 1)
@@ -372,7 +387,6 @@ struct ContentView: View {
                     }   // closes else
                         }   // closes inner VStack (ScrollView content)
                     }   // closes ScrollView
-                }   // closes TODAY'S RECORDS VStack
                 }   // closes outer VStack
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
