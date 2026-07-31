@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var expandedReactionPost: Int? = nil   // which post's reaction picker is open
     @State private var streak: Streak = Streak(count: 0, lastPostDate: nil)
     @State private var avatarURL: String?
+    @State private var streakPopped = false
     @StateObject private var audio = AudioPlayer()
     
     private var todayDateline: String {
@@ -104,6 +105,7 @@ struct ContentView: View {
                                     Text("\(streak.effectiveCount)")
                                         .font(.display(17, .extraBold))
                                         .foregroundStyle(streakNumberColor)
+                                        .scaleEffect(streakPopped ? 1.3 : 1.0)
                                     Text("DAY STREAK")
                                         .font(.sans(9.5, .medium))
                                         .tracking(1)
@@ -111,6 +113,15 @@ struct ContentView: View {
                                 }
                             }
                         }
+                        
+                        // NUDGE LINE - own line, right-aligned
+                        if let nudge = streakNudge {
+                            Text(nudge)
+                                .font(.sans(10.5))
+                                .foregroundStyle(streakLabelColor)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                        }
+                        
                         Text("What are you playing today?")
                             .font(.display(24, .bold))
                             .foregroundStyle(Color.recordText)
@@ -388,7 +399,21 @@ struct ContentView: View {
             if newPath.isEmpty {
                 Task {
                     await loadProfile()
-                    await loadFeedAndReactions() }
+                    await loadFeedAndReactions()
+                }
+            }
+        }
+        .onChange(of: streak.effectiveCount) { oldValue, newValue in
+            if newValue > oldValue {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) { 
+                    streakPopped = true 
+                } // grow
+                Task {
+                    try? await Task.sleep(for: .milliseconds(220)) // wait
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { 
+                        streakPopped = false 
+                    }
+                }
             }
         }
     }
@@ -504,6 +529,15 @@ struct ContentView: View {
         case .dayOne: return Color(red: 0.541, green: 0.541, blue: 0.541)
         case .atRisk: return Color(red: 0.659, green: 0.463, blue: 0.247)
         case .broken: return Color(red: 0.353, green: 0.353, blue: 0.353)
+        }
+    }
+    
+    var streakNudge: String? {
+        switch streak.state {
+        case .active: return nil
+        case .dayOne: return "new streak"
+        case .atRisk: return "post before midnight"
+        case .broken: return streak.effectiveCount == 0 && streak.lastPostDate != nil ? "start again" : nil
         }
     }
 }
