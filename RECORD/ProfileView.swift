@@ -72,20 +72,43 @@ struct ProfileView: View {
                                     .foregroundStyle(Color(red: 0.416, green: 0.416, blue: 0.4))
                                 
                                 // service links
-                                HStack(spacing: 16) {
+                                HStack(spacing: 10) {
                                     if let spotify = spotifyProfile, let url = URL(string: spotify) {
                                         Link(destination: url) {
-                                            Text("SPOTIFY ↗")
-                                                .font(.sans(11, .medium))
-                                                .tracking(0.5)
-                                                .foregroundStyle(Color(red: 0.54, green: 0.54, blue: 0.525))
+                                            HStack(spacing: 5) {
+                                                Image("spotify-logo-white")
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(width: 13, height: 13)
+                                                Text("SPOTIFY")
+                                                    .font(.sans(11, .medium))
+                                                    .tracking(0.5)
+                                                    .foregroundStyle(Color(red: 0.54, green: 0.54, blue: 0.525))
+                                            }
+                                            .padding(.vertical, 6)
+                                            .padding(.horizontal, 12)
+                                            .overlay(
+                                                Capsule().stroke(Color(red: 0.16, green: 0.16, blue: 0.16), lineWidth: 1)
+                                            )
                                         }
                                     }
                                     if let apple = appleMusicProfile, let url = URL(string: apple) {
                                         Link(destination: url) {
-                                            Text("APPLE MUSIC ↗")
-                                                .font(.sans(11, .medium))
-                                                .foregroundStyle(Color(red: 0.54, green: 0.54, blue: 0.525))
+                                            HStack(spacing: 5) {
+                                                Image("apple-music-logo-white")
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(width: 13, height: 13)
+                                                Text("APPLE MUSIC")
+                                                    .font(.sans(11, .medium))
+                                                    .tracking(0.5)
+                                                    .foregroundStyle(Color(red: 0.54, green: 0.54, blue: 0.525))
+                                            }
+                                            .padding(.vertical, 6)
+                                            .padding(.horizontal, 12)
+                                            .overlay(
+                                                Capsule().stroke(Color(red: 0.16, green: 0.16, blue: 0.16), lineWidth: 1)
+                                                )
                                         }
                                     }
                                 }
@@ -502,9 +525,7 @@ struct ProfileView: View {
     
         var metaLine: String {
             var parts = ["\(totalRecords) RECORD\(totalRecords == 1 ? "" : "S")"]
-            if streak.effectiveCount > 0 {
-                parts.append("\(streak.effectiveCount) DAY STREAK")
-            }
+            parts.append("\(streak.effectiveCount) DAY STREAK")
             if !joinedDate.isEmpty {
                 parts.append("SINCE \(joinedDate)")
             }
