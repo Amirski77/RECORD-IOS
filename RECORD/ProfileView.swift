@@ -32,6 +32,9 @@ struct ProfileView: View {
     @State private var uploading = false // upload in progress
     @State private var showAvatarOptions = false
     @State private var showPhotoPicker = false
+    @State private var joinedDate: String = ""
+    @State private var appleMusicProfile: String?
+    @State private var spotifyProfile: String?
     @StateObject private var audio = AudioPlayer()
 
     @Environment(\.dismiss) private var dismiss
@@ -44,66 +47,73 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 0) {
 
                     // ===== PROFILE HEADER =====
-                    HStack(alignment: .top, spacing: 14) {
-                        Group {
-                            if isMe {
-                                Button {
-                                    showAvatarOptions = true
-                                } label: {
+                    HStack(alignment: .top) {
+                        // avatar + identity
+                        HStack(alignment: .top, spacing: 14) {
+                            // avatar ( tappable if mine - opens photo sheet)
+                            Group {
+                                if isMe {
+                                    Button { showAvatarOptions = true } label: { avatarImage }
+                                        .buttonStyle(.plain)
+                                } else {
                                     avatarImage
                                 }
-                                .buttonStyle(.plain)
-                            } else {
-                                avatarImage
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(username)
+                                    .font(.display(30, .bold))
+                                    .foregroundStyle(Color.recordText)
+                                
+                                // meta line: records · streak · since
+                                Text(metaLine)
+                                    .font(.sans(12, .medium))
+                                    .tracking(0.5)
+                                    .foregroundStyle(Color(red: 0.416, green: 0.416, blue: 0.4))
+                                
+                                // service links
+                                HStack(spacing: 16) {
+                                    if let spotify = spotifyProfile, let url = URL(string: spotify) {
+                                        Link(destination: url) {
+                                            Text("SPOTIFY ↗")
+                                                .font(.sans(11, .medium))
+                                                .tracking(0.5)
+                                                .foregroundStyle(Color(red: 0.54, green: 0.54, blue: 0.525))
+                                        }
+                                    }
+                                    if let apple = appleMusicProfile, let url = URL(string: apple) {
+                                        Link(destination: url) {
+                                            Text("APPLE MUSIC ↗")
+                                                .font(.sans(11, .medium))
+                                                .foregroundStyle(Color(red: 0.54, green: 0.54, blue: 0.525))
+                                        }
+                                    }
+                                }
+                                .padding(.top, 2)
                             }
                         }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(username)
-                                .font(.display(30, .bold))
-                                .foregroundStyle(Color.recordText)
-
-                            // stat line: "12 records · 5 day best"
-                            Text(statLine)
-                                .font(.sans(13))
-                                .foregroundStyle(Color.recordMuted)
-                        }
                         Spacer()
-
-                        // streak (neutral tone on others' profiles)
-                        if streak.effectiveCount > 0 {
-                            HStack(spacing: 4) {
-                                Text("\(streak.effectiveCount)")
-                                    .font(.display(17, .extraBold))
-                                    .foregroundStyle(isMe ? streakNumberColor : Color.recordText)
-                                Text("DAY STREAK")
-                                    .font(.sans(9.5, .medium))
-                                    .tracking(1)
+                        
+                        // ⋯ overflow menu (mine only)
+                        if isMe {
+                            Menu {
+                                NavigationLink(value: "settings") {
+                                    Label("Settings", systemImage: "gearshape")
+                                }
+                                Button(role: .destructive) {
+                                    Task { await logOut() }
+                                } label: {
+                                    Label("Log Out", systemImage: "arrow.right.square")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 18, weight: .semibold))
                                     .foregroundStyle(Color.recordMuted)
+                                    .frame(width: 32, height: 32)
                             }
                         }
                     }
                     .padding(.top, 8)
-
-                    // SETTINGS / LOG OUT (my profile only)
-                    if isMe {
-                        HStack(spacing: 20) {
-                            Text("SETTINGS")
-                                .font(.sans(11, .medium))
-                                .tracking(1)
-                                .foregroundStyle(Color.recordDim)
-                            Button {
-                                Task { await logOut() }
-                            } label: {
-                                Text("LOG OUT")
-                                    .font(.sans(11, .medium))
-                                    .tracking(1)
-                                    .foregroundStyle(Color.recordDim)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.top, 10)
-                    }
 
                     Rectangle()
                         .fill(Color.recordSurface)
@@ -348,7 +358,7 @@ struct ProfileView: View {
         do {
             let row: ProfileFullRow = try await supabase
                 .from("profiles")
-                .select("current_streak, last_post_date, longest_streak, avatar_url")
+                .select("current_streak, last_post_date, longest_streak, avatar_url, created_at, apple_music_profile, spotify_profile")
                 .eq("id", value: userID)
                 .single()
                 .execute()
@@ -365,6 +375,20 @@ struct ProfileView: View {
             bestStreak = row.longest_streak
             
             avatarURL = row.avatar_url
+            
+            // joined date -> 'JUL 2026"
+            if let created = row.created_at {
+                let inFmt = ISO8601DateFormatter()
+                inFmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                let date = inFmt.date(from: created) ?? ISO8601DateFormatter().date(from: created)
+                if let date {
+                    let outFmt = DateFormatter()
+                    outFmt.dateFormat = "MMM yyyy"
+                    joinedDate = outFmt.string(from: date).uppercased()
+                }
+            }
+            appleMusicProfile = row.apple_music_profile
+            spotifyProfile = row.spotify_profile
         } catch {
             print("Profile load failed: \(error)")
         }
@@ -475,6 +499,17 @@ struct ProfileView: View {
         case .broken: return Color(red: 0.49, green: 0.486, blue: 0.471)
         }
     }
+    
+        var metaLine: String {
+            var parts = ["\(totalRecords) RECORD\(totalRecords == 1 ? "" : "S")"]
+            if streak.effectiveCount > 0 {
+                parts.append("\(streak.effectiveCount) DAY STREAK")
+            }
+            if !joinedDate.isEmpty {
+                parts.append("SINCE \(joinedDate)")
+            }
+            return parts.joined(separator: " · ")
+        }
 }
 
 struct ProfileFullRow: Decodable {
@@ -482,4 +517,7 @@ struct ProfileFullRow: Decodable {
     let last_post_date: String?
     let longest_streak: Int
     let avatar_url: String?
+    let created_at: String?
+    let apple_music_profile: String?
+    let spotify_profile: String?
 }
