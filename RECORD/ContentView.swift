@@ -99,7 +99,7 @@ struct ContentView: View {
                                 Text("YOUR RECORD · TODAY")
                                     .font(.sans(10, .medium))
                                     .tracking(1.5)
-                                    .foregroundStyle(Color.recordGreen)
+                                    .foregroundStyle(Color.recordAccent)
                                 Spacer()
                                 if streak.effectiveCount > 0 || streak.state == .broken {
                                     HStack {
@@ -136,7 +136,7 @@ struct ContentView: View {
                                 .foregroundStyle(.black)
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 12)
-                                .background(Color.recordGreen)
+                                .background(Color.recordAccent)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
@@ -156,7 +156,7 @@ struct ContentView: View {
                     )
                     .overlay(alignment: .leading) {
                         Rectangle()
-                            .fill(Color.recordGreen)
+                            .fill(Color.recordAccent)
                             .frame(width: 4)
                     }
                     
@@ -369,18 +369,18 @@ struct ContentView: View {
     
     var streakNumberColor: Color {
         switch streak.state {
-        case .active: return Color(red: 0.918, green: 1.0, blue: 0.945)
+        case .active: return Color(red: 1.0, green: 0.918, blue: 0.953)
         case .dayOne: return Color(red: 0.949, green: 0.945, blue: 0.933)
-        case .atRisk: return Color(red: 1.0, green: 0.706, blue: 0.329)
+        case .atRisk: return Color(red: 0.949, green: 0.757, blue: 0.306)
         case .broken: return Color(red: 0.49, green: 0.486, blue: 0.471)
         }
     }
 
     var streakLabelColor: Color {
         switch streak.state {
-        case .active: return Color(red: 0.561, green: 0.851, blue: 0.675)
+        case .active: return Color(red: 1.0, green: 0.561, blue: 0.749)
         case .dayOne: return Color(red: 0.541, green: 0.541, blue: 0.541)
-        case .atRisk: return Color(red: 0.659, green: 0.463, blue: 0.247)
+        case .atRisk: return Color(red: 0.604, green: 0.482, blue: 0.2)
         case .broken: return Color(red: 0.353, green: 0.353, blue: 0.353)
         }
     }
@@ -458,7 +458,7 @@ struct FeedPostRow: View {
             Text(post.profiles.username)
                 .font(.sans(11, .medium))
                 .tracking(0.5)
-                .foregroundStyle(Color.recordGreen)
+                .foregroundStyle(Color.recordAccent)
         }
         .buttonStyle(.plain)
     }
@@ -491,12 +491,12 @@ struct FeedPostRow: View {
         HStack(spacing: 8) {
             if let appleURL = post.apple_music_url,
                let url = URL(string: appleURL) {
-                MusicLink(url: url, imageName: "apple-music-logo", text: "Apple Music")
+                MusicLink(url: url, imageName: "apple-music-logo-white", text: "Apple Music")
             }
             
             if let spotifyURL = post.spotify_url,
                let url = URL(string: spotifyURL) {
-                MusicLink(url: url, imageName: "spotify-logo", text: "Spotify")
+                MusicLink(url: url, imageName: "spotify-logo-white", text: "Spotify")
             }
         }
         .padding(.top, 5)
@@ -557,7 +557,7 @@ struct FeedPostRow: View {
                     }
                     .padding(.vertical, 4)
                     .padding(.horizontal, 8)
-                    .background(isMine ? Color.recordGreen.opacity(0.2) : Color.recordSurface2)
+                    .background(isMine ? Color.recordAccent.opacity(0.2) : Color.recordSurface2)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -569,7 +569,7 @@ struct FeedPostRow: View {
         Button(action: onExpandToggle) {
             Image(systemName: "plus")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(expandedReactionPost == post.id ? Color.recordGreen : Color.recordMuted)
+                .foregroundStyle(expandedReactionPost == post.id ? Color.recordAccent : Color.recordMuted)
                 .rotationEffect(.degrees(expandedReactionPost == post.id ? 45 : 0))
                 .animation(.spring(response: 0.35, dampingFraction: 0.85), value: expandedReactionPost)
                 .padding(.vertical, 5)
@@ -601,7 +601,7 @@ struct MusicLink: View {
             .padding(.vertical, 5)
             .padding(.horizontal, 10)
             .overlay(
-                Capsule().stroke(Color.recordGreen.opacity(0.5), lineWidth: 1)
+                Capsule().stroke(Color.recordAccent.opacity(0.5), lineWidth: 1)
             )
         }
     }

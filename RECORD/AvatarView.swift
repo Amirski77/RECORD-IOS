@@ -20,7 +20,7 @@ struct AvatarView: View {
     
     var body: some View {
         Circle()
-            .fill(Color.recordGreen)
+            .fill(Color.recordAccent)
             .frame(width: size, height: size)
             .overlay(
                 Text(initial)

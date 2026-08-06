@@ -58,7 +58,7 @@ struct PostConfirmView: View {
                 Text("YOUR RECORD · TODAY")
                     .font(.sans(10, .medium))
                     .tracking(1.5)
-                    .foregroundStyle(Color.recordGreen)
+                    .foregroundStyle(Color.recordAccent)
 
                 // BIG ALBUM ART
                 AsyncImage(url: bigArtworkURL) { image in
@@ -91,11 +91,11 @@ struct PostConfirmView: View {
                             Text(audio.currentlyPlayingURL == preview ? "Pause" : "Play preview")
                                 .font(.sans(13, .medium))
                         }
-                        .foregroundStyle(Color.recordGreen)
+                        .foregroundStyle(Color.recordAccent)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
                         .overlay(
-                            Capsule().stroke(Color.recordGreen, lineWidth: 1)
+                            Capsule().stroke(Color.recordAccent, lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)
@@ -131,7 +131,7 @@ struct PostConfirmView: View {
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.recordGreen)
+                        .background(Color.recordAccent)
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)

@@ -81,7 +81,7 @@ struct AuthView: View {
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.recordGreen)
+                        .background(Color.recordAccent)
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)

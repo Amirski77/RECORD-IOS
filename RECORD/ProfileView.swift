@@ -251,7 +251,7 @@ struct ProfileView: View {
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.recordGreen)
+                        .background(Color.recordAccent)
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -525,7 +525,9 @@ struct ProfileView: View {
     
         var metaLine: String {
             var parts = ["\(totalRecords) RECORD\(totalRecords == 1 ? "" : "S")"]
-            parts.append("\(streak.effectiveCount) DAY STREAK")
+            if streak.effectiveCount > 0 {
+                parts.append("\(streak.effectiveCount) DAY STREAK")
+            }
             if !joinedDate.isEmpty {
                 parts.append("SINCE \(joinedDate)")
             }
