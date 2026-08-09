@@ -4,10 +4,9 @@
 //
 //  Root shell for the app. Spec §3.
 //
-//  TabView does the machinery — each tab keeps its own NavigationStack and its
-//  own scroll position, so switching tabs doesn't refetch anything. Its native
-//  bar is hidden; the bar you see is RecordTabBar below, attached with
-//  .safeAreaInset so scroll views inset around it automatically.
+//  The three NavigationPaths live HERE rather than inside each screen, because
+//  the tab bar needs to clear them: tapping the tab you're already on pops that
+//  tab back to its root. State that gets reset from outside has to live outside.
 //
 
 import SwiftUI
@@ -31,28 +30,40 @@ enum RecordTab: Hashable, CaseIterable {
 struct MainTabView: View {
     @State private var selection: RecordTab = .today
 
+    @State private var todayPath = NavigationPath()
+    @State private var diaryPath = NavigationPath()
+    @State private var friendsPath = NavigationPath()
+
     var body: some View {
         TabView(selection: $selection) {
-            ContentView()
+            ContentView(path: $todayPath)
                 .tag(RecordTab.today)
 
-            DiaryTabView()
+            DiaryTabView(path: $diaryPath)
                 .tag(RecordTab.diary)
 
-            FriendsPlaceholderView()
+            FriendsView(path: $friendsPath)
                 .tag(RecordTab.friends)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            RecordTabBar(selection: $selection)
+            RecordTabBar(selection: $selection, onReselect: popToRoot)
         }
         .background(Color.recordBG.ignoresSafeArea())
         .preferredColorScheme(.dark)
+    }
+
+    private func popToRoot(_ tab: RecordTab) {
+        switch tab {
+        case .today:   todayPath = NavigationPath()
+        case .diary:   diaryPath = NavigationPath()
+        case .friends: friendsPath = NavigationPath()
+        }
     }
 }
 
 // MARK: - Shared navigation destinations
 //
-// A destination is only visible to the NavigationStack it is registered on.
+// A destination is only visible to the NavigationStack it's registered on.
 // Three tabs means three stacks, so this goes on all of them.
 
 struct RecordDestinations: ViewModifier {
@@ -90,8 +101,8 @@ extension View {
 // pass them. This wrapper reads them from the shared Session instead.
 
 struct DiaryTabView: View {
+    @Binding var path: NavigationPath
     @EnvironmentObject private var session: Session
-    @State private var path = NavigationPath()
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -115,6 +126,7 @@ struct DiaryTabView: View {
 
 struct RecordTabBar: View {
     @Binding var selection: RecordTab
+    var onReselect: (RecordTab) -> Void
 
     var body: some View {
         HStack(spacing: 0) {
@@ -142,7 +154,11 @@ struct RecordTabBar: View {
         let isActive = selection == tab
 
         return Button {
-            selection = tab
+            if isActive {
+                onReselect(tab)      // already here → pop to root
+            } else {
+                selection = tab
+            }
         } label: {
             VStack(spacing: 5) {
                 TabIcon(tab: tab)
@@ -193,35 +209,6 @@ struct TabIcon: View {
                     .frame(width: 13, height: 13)
                     .offset(x: 3.2)
             }
-        }
-    }
-}
-
-// MARK: - Temporary Friends stub (replaced in step 2)
-
-struct FriendsPlaceholderView: View {
-    @State private var path = NavigationPath()
-
-    var body: some View {
-        NavigationStack(path: $path) {
-            ZStack {
-                Color.recordBG.ignoresSafeArea()
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Friends")
-                        .font(.display(34, .extraBold))
-                        .tracking(-0.7)
-                        .foregroundStyle(Color.recordDisplay)
-                    Text("Coming in step 2.")
-                        .font(.sans(13))
-                        .foregroundStyle(Color.recordSecondary)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-            }
-            .toolbar(.hidden, for: .tabBar)
-            .recordDestinations(path: $path)
         }
     }
 }

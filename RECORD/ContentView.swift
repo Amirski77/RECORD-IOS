@@ -17,9 +17,10 @@ struct ProfileWithStreak: Decodable {
 }
 
 struct ContentView: View {
+    @Binding var path: NavigationPath
+    
     @State private var username = "..."
     @State private var posts: [FeedPost] = []
-    @State private var path = NavigationPath()
     @State private var reactionCounts: [Int: [String: Int]] = [:] //[postID: [type: count]]
     @State private var myReactionsByPost: [Int: String] = [:] //[postID: myType]
     @State private var myUserID: String = ""
