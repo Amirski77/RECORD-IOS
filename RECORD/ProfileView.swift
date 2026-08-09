@@ -65,11 +65,10 @@ struct ProfileView: View {
                                     .font(.display(30, .bold))
                                     .foregroundStyle(Color.recordText)
                                 
-                                // meta line: records · streak · since
-                                Text(metaLine)
-                                    .font(.sans(12, .medium))
-                                    .tracking(0.5)
-                                    .foregroundStyle(Color(red: 0.416, green: 0.416, blue: 0.4))
+                                // meta line — bright numerals, dim rest
+                                Text(metaLineAttributed)
+                                .font(.sans(12, .medium))
+                                .tracking(0.5)
                                 
                                 // service links
                                 HStack(spacing: 10) {
@@ -131,7 +130,7 @@ struct ProfileView: View {
                             } label: {
                                 Image(systemName: "ellipsis")
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundStyle(Color.recordMuted)
+                                    .foregroundStyle(Color.recordSecondary)
                                     .frame(width: 32, height: 32)
                             }
                         }
@@ -139,9 +138,21 @@ struct ProfileView: View {
                     .padding(.top, 8)
 
                     Rectangle()
-                        .fill(Color.recordSurface)
+                        .fill(Color.recordSeparator)
                         .frame(height: 1)
                         .padding(.vertical, 20)
+                    
+                    // THE DIARY header
+                    Text("THE DIARY")
+                        .font(.display(20, .bold))
+                        .foregroundStyle(Color.recordText)
+                        .padding(.top, 24)
+                        .padding(.bottom, 4)
+
+                    Rectangle()
+                        .fill(Color.recordSeparator)
+                        .frame(height: 1)
+                        .padding(.bottom, 4)
 
                     // DIARY LIST
                     if loading {
@@ -187,14 +198,14 @@ struct ProfileView: View {
         VStack(spacing: 10) {
             Text("00")
                 .font(.display(72, .extraBold))
-                .foregroundStyle(Color.recordSurface)
+                .foregroundStyle(Color.recordSeparator)
             if isMe {
                 Text("No records yet.")
                     .font(.display(21, .bold))
                     .foregroundStyle(Color.recordText)
                 Text("Your diary starts the day you post.")
                     .font(.sans(13))
-                    .foregroundStyle(Color.recordMuted)
+                    .foregroundStyle(Color.recordSecondary)
             } else {
                 Text("\(username) hasn't posted yet.")
                     .font(.display(21, .bold))
@@ -263,11 +274,11 @@ struct ProfileView: View {
                     } label: {
                         Text("Delete Photo")
                             .font(.sans(15, .medium))
-                            .foregroundStyle(Color.recordError)
+                            .foregroundStyle(Color.recordDestructive)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .overlay(
-                                Capsule().stroke(Color.recordError.opacity(0.4), lineWidth: 1)
+                                Capsule().stroke(Color.recordDestructive.opacity(0.4), lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -288,9 +299,9 @@ struct ProfileView: View {
                     Text(group.month.uppercased())
                         .font(.sans(11, .medium))
                         .tracking(1.5)
-                        .foregroundStyle(Color.recordDim)
+                        .foregroundStyle(Color.recordTertiary)
                     Rectangle()
-                        .fill(Color.recordSurface)
+                        .fill(Color.recordSeparator)
                         .frame(height: 1)
                 }
                 .padding(.top, 20)
@@ -318,7 +329,7 @@ struct ProfileView: View {
                     AsyncImage(url: URL(string: post.album_art_url)) { image in
                     image.resizable()
                 } placeholder: {
-                    Color.recordSurface
+                    Color.recordSeparator
                 }
                 .frame(width: 56, height: 56)
                 .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -347,16 +358,16 @@ struct ProfileView: View {
                         .lineLimit(1)
                     Text(post.artist_name)
                         .font(.sans(13))
-                        .foregroundStyle(Color.recordMuted)
+                        .foregroundStyle(Color.recordSecondary)
                         .lineLimit(1)
                     if let note = post.note, !note.isEmpty {
                         Text(note)
                             .font(.sans(13))
                             .italic()
-                            .foregroundStyle(Color.recordMuted)
+                            .foregroundStyle(Color.recordSecondary)
                             .padding(.leading, 8)
                             .overlay(
-                                Rectangle().fill(Color.recordSurface2).frame(width: 2),
+                                Rectangle().fill(Color.recordCardBorder).frame(width: 2),
                                 alignment: .leading
                             )
                             .padding(.top, 2)
@@ -367,7 +378,7 @@ struct ProfileView: View {
             .padding(.vertical, 12)
             
             Rectangle()
-                .fill(Color.recordSurface)
+                .fill(Color.recordSeparator)
                 .frame(height: 1)
         }
     }
@@ -521,6 +532,49 @@ struct ProfileView: View {
         case .atRisk: return Color(red: 1.0, green: 0.706, blue: 0.329)
         case .broken: return Color(red: 0.49, green: 0.486, blue: 0.471)
         }
+    }
+    
+    var metaGray: Color {
+        Color(red: 0.416, green: 0.416, blue: 0.4)   // #6a6a66
+    }
+    
+    var metaLineAttributed: AttributedString {
+        var result = AttributedString()
+        
+        // Total records number
+        var recordsNum = AttributedString("\(totalRecords)")
+        recordsNum.foregroundColor = Color.recordText
+        result.append(recordsNum)
+        
+        // Records label - using metaGray (#6a6a66)
+        var recordsLabel = AttributedString(" RECORD\(totalRecords == 1 ? "" : "S")")
+        recordsLabel.foregroundColor = metaGray
+        result.append(recordsLabel)
+        
+        // Streak (if active)
+        if streak.effectiveCount > 0 {
+            var separator1 = AttributedString("  ·  ")
+            separator1.foregroundColor = metaGray
+            result.append(separator1)
+            
+            var streakNum = AttributedString("\(streak.effectiveCount)")
+            streakNum.foregroundColor = Color.recordText
+            result.append(streakNum)
+            
+            // Day streak label - using metaGray (#6a6a66)
+            var streakLabel = AttributedString(" DAY STREAK")
+            streakLabel.foregroundColor = metaGray
+            result.append(streakLabel)
+        }
+        
+        // Joined date
+        if !joinedDate.isEmpty {
+            var separator2 = AttributedString("  ·  SINCE \(joinedDate)")
+            separator2.foregroundColor = metaGray
+            result.append(separator2)
+        }
+        
+        return result
     }
     
         var metaLine: String {

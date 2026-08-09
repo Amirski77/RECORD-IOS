@@ -26,12 +26,12 @@ struct SearchView: View {
                     .foregroundStyle(Color.recordText)
                 
                 // SEARCH FIELD
-                TextField("", text: $query, prompt: Text("Search a song...").foregroundColor(.recordDim))
+                TextField("", text: $query, prompt: Text("Search a song...").foregroundColor(.recordTertiary))
                     .font(.sans(15))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .padding()
-                    .background(Color.recordSurface)
+                    .background(Color.recordSeparator)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .foregroundStyle(Color.recordText)
                     .onChange(of: query) {
@@ -51,7 +51,7 @@ struct SearchView: View {
                                 HStack(spacing: 12) {
                                     AsyncImage(url: URL(string: song.artworkUrl100 ?? "")) { image in image.resizable()
                                     } placeholder: {
-                                        Color.recordSurface
+                                        Color.recordSeparator
                                     }
                                     .frame(width: 52, height: 52)
                                     .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -63,7 +63,7 @@ struct SearchView: View {
                                             .lineLimit(1)
                                         Text(song.artistName)
                                             .font(.sans(13))
-                                            .foregroundStyle(Color.recordMuted)
+                                            .foregroundStyle(Color.recordSecondary)
                                             .lineLimit(1)
                                     }
                                     Spacer()

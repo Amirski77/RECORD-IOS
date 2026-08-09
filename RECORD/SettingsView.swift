@@ -29,7 +29,7 @@ struct SettingsView: View {
                     
                     Text("Where friends can find you.")
                         .font(.sans(12.5))
-                        .foregroundStyle(Color.recordMuted)
+                        .foregroundStyle(Color.recordSecondary)
                         .padding(.bottom, 12)
                     
                     // Spotify field
@@ -37,14 +37,14 @@ struct SettingsView: View {
                         Text("SPOTIFY PROFILE URL")
                             .font(.sans(10, .medium))
                             .tracking(1)
-                            .foregroundStyle(Color.recordDim)
+                            .foregroundStyle(Color.recordTertiary)
                         TextField("", text: $spotifyProfile,
-                                  prompt: Text("paste your Spotify profile link").foregroundColor(.recordDim))
+                                  prompt: Text("paste your Spotify profile link").foregroundColor(.recordTertiary))
                             .font(.sans(14))
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding()
-                            .background(Color.recordSurface)
+                            .background(Color.recordSeparator)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .foregroundStyle(Color.recordText)
                      }
@@ -55,14 +55,14 @@ struct SettingsView: View {
                         Text("APPLE MUSIC PROFILE URL")
                             .font(.sans(10, .medium))
                             .tracking(1)
-                            .foregroundStyle(Color.recordDim)
+                            .foregroundStyle(Color.recordTertiary)
                         TextField("", text: $appleMusicProfile,
-                                  prompt: Text("paste your Apple Music profile link").foregroundColor(.recordDim))
+                                  prompt: Text("paste your Apple Music profile link").foregroundColor(.recordTertiary))
                             .font(.sans(14))
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding()
-                            .background(Color.recordSurface)
+                            .background(Color.recordSeparator)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .foregroundStyle(Color.recordText)
                     }
@@ -98,7 +98,7 @@ struct SettingsView: View {
                             .padding(.vertical, 15)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.recordSurface2, lineWidth: 1)
+                                    .stroke(Color.recordCardBorder, lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -110,7 +110,7 @@ struct SettingsView: View {
                     } label: {
                         Text(deleting ? "Deleting..." : "Delete Account")
                             .font(.sans(12.5))
-                            .foregroundStyle(Color.recordError)
+                            .foregroundStyle(Color.recordDestructive)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 15)
                     }
@@ -141,7 +141,7 @@ struct SettingsView: View {
             Text(title)
                 .font(.sans(11, .medium))
                 .tracking(1)
-                .foregroundStyle(Color.recordDim)
+                .foregroundStyle(Color.recordTertiary)
             Rectangle()
                 .fill(Color(red: 0.113, green: 0.113, blue: 0.113))
                 .frame(height: 1)

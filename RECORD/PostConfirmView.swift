@@ -64,7 +64,7 @@ struct PostConfirmView: View {
                 AsyncImage(url: bigArtworkURL) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
-                    Color.recordSurface
+                    Color.recordSeparator
                 }
                 .frame(maxWidth: .infinity)
                 .aspectRatio(1, contentMode: .fit)
@@ -77,7 +77,7 @@ struct PostConfirmView: View {
                         .foregroundStyle(Color.recordText)
                     Text(song.artistName)
                         .font(.sans(15))
-                        .foregroundStyle(Color.recordMuted)
+                        .foregroundStyle(Color.recordSecondary)
                 }
                 
                 // PLAY PREVIEW
@@ -104,11 +104,11 @@ struct PostConfirmView: View {
                 // OPTIONAL NOTE — matches your web app's 280-char note field.
                 // `axis: .vertical` lets it grow to a few lines as you type.
                 TextField("", text: $note,
-                          prompt: Text("Add a note (optional)").foregroundColor(.recordDim),
+                          prompt: Text("Add a note (optional)").foregroundColor(.recordTertiary),
                           axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
                     .padding()
-                    .background(Color.recordSurface)
+                    .background(Color.recordSeparator)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .foregroundStyle(Color.recordText)
                     .onChange(of: note) { _, newValue in
@@ -119,7 +119,7 @@ struct PostConfirmView: View {
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.sans(12))
-                        .foregroundStyle(Color.recordError)
+                        .foregroundStyle(Color.recordDestructive)
                 }
 
                 // POST BUTTON

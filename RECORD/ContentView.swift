@@ -45,51 +45,26 @@ struct ContentView: View {
                 
                 VStack(alignment: .leading, spacing: 24) {
                     
-                    // HEADER: wordmark + nav
-                    HStack {
-                        Text ("RECORD")
-                            .font(.display(22, .bold))
-                            .tracking(3)
-                            .foregroundColor(.recordText)
-                        Spacer()
-                        NavigationLink(value: ProfileRoute( userID: myUserID, username: username, isMe: true)) {
-                            HStack(spacing: 8) {
-                                Group {
-                                    if let avatarURL, let url = URL(string: avatarURL) {
-                                        AsyncImage(url: url) { image in
-                                            image.resizable().scaledToFill()
-                                        } placeholder: {
-                                            AvatarView(username: username, size: 28)
-                                        }
-                                        .frame(width: 28, height: 28)
-                                        .clipShape(Circle())
-                                    } else {
-                                        AvatarView(username: username, size: 28)
-                                    }
-                                }
-                                Text(username)
-                                    .font(.sans(13, .medium))
-                                    .foregroundStyle(Color.recordMuted)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        
-                    }
+                    // MASTHEAD
+                    Text("RECORD")
+                        .font(.display(22, .bold))
+                        .tracking(3)
+                        .foregroundColor(.recordText)
                     
                     //DATELINE
                     HStack (spacing: 12) {
                         Text("THE DAILY EDITION")
                             .font(.sans(10, .medium))
                             .tracking(2)
-                            .foregroundStyle(Color.recordDim)
+                            .foregroundStyle(Color.recordTertiary)
                         Spacer()
                         Text(todayDateline)
                             .font(.sans(10, .medium))
                             .tracking(2)
-                            .foregroundStyle(Color.recordDim)
+                            .foregroundStyle(Color.recordTertiary)
                     }
                     Rectangle()
-                        .fill(Color.recordDim.opacity(0.3))
+                        .fill(Color.recordTertiary.opacity(0.3))
                         .frame(height: 1)
                     
                     //THE GREEN "POST" CARD
@@ -172,7 +147,7 @@ struct ContentView: View {
                         .tracking(1)
                         .foregroundStyle(Color.recordText)
                     Rectangle()
-                        .fill(Color.recordDim.opacity(0.3))
+                        .fill(Color.recordTertiary.opacity(0.3))
                         .frame(height: 1)
                     
                     // FEED — or empty state if no posts yet
@@ -182,18 +157,18 @@ struct ContentView: View {
                         VStack(spacing: 8) {
                             Text("00")
                                 .font(.display(72, .extraBold))
-                                .foregroundStyle(Color.recordSurface)
+                                .foregroundStyle(Color.recordSeparator)
                             Text("No records yet today.")
                                 .font(.display(21, .bold))
                                 .foregroundStyle(Color.recordText)
                             Text("The edition fills as your friends drop their song. Post yours and be the first line.")
                                 .font(.sans(13))
-                                .foregroundStyle(Color.recordMuted)
+                                .foregroundStyle(Color.recordSecondary)
                                 .multilineTextAlignment(.center)
                             Text("ONE SONG · ONE DAY · RESETS MIDNIGHT UTC")
                                 .font(.sans(10, .medium))
                                 .tracking(2)
-                                .foregroundStyle(Color.recordDim)
+                                .foregroundStyle(Color.recordTertiary)
                                 .padding(.top, 8)
                         }
                         .frame(maxWidth: .infinity)
@@ -228,19 +203,8 @@ struct ContentView: View {
                 .padding(.top, 20)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }   // closes ZStack — padding + navigationDestination attach here
-            .navigationDestination(for: String.self) { value in
-                if value == "search" {
-                    SearchView(path: $path)
-                } else if value == "settings" {
-                    SettingsView()
-                }
-            }
-            .navigationDestination(for: Song.self) { song in
-                PostConfirmView(song: song, path: $path)
-            }
-            .navigationDestination(for: ProfileRoute.self) { route in
-                ProfileView(userID: route.userID, username: route.username, isMe: route.isMe)
-            }
+            .recordDestinations(path: $path)
+            .toolbar(.hidden, for: .tabBar)
             
         }
         .task {
@@ -431,7 +395,7 @@ struct FeedPostRow: View {
             AsyncImage(url: URL(string: post.album_art_url)) { image in
                 image.resizable()
             } placeholder: {
-                Color.recordSurface
+                Color.recordSeparator
             }
             .frame(width: 56, height: 56)
             .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -473,7 +437,7 @@ struct FeedPostRow: View {
     private var artistNameText: some View {
         Text(post.artist_name)
             .font(.sans(15))
-            .foregroundStyle(Color.recordMuted)
+            .foregroundStyle(Color.recordSecondary)
             .lineLimit(1)
     }
     
@@ -482,7 +446,7 @@ struct FeedPostRow: View {
         if let note = post.note, !note.isEmpty {
             Text(note)
                 .font(.sans(13))
-                .foregroundStyle(Color.recordMuted)
+                .foregroundStyle(Color.recordSecondary)
                 .padding(.top, 2)
         }
     }
@@ -533,7 +497,7 @@ struct FeedPostRow: View {
         .padding(.vertical, 3)
         .background(Color.recordBG)
         .clipShape(Capsule())
-        .overlay(Capsule().stroke(Color.recordSurface2, lineWidth: 1))
+        .overlay(Capsule().stroke(Color.recordCardBorder, lineWidth: 1))
         .transition(.move(edge: .trailing).combined(with: .opacity))
     }
     
@@ -552,12 +516,12 @@ struct FeedPostRow: View {
                         if count >= 2 {
                             Text("\(count)")
                                 .font(.sans(13, .medium))
-                                .foregroundStyle(Color.recordMuted)
+                                .foregroundStyle(Color.recordSecondary)
                         }
                     }
                     .padding(.vertical, 4)
                     .padding(.horizontal, 8)
-                    .background(isMine ? Color.recordAccent.opacity(0.2) : Color.recordSurface2)
+                    .background(isMine ? Color.recordAccent.opacity(0.2) : Color.recordCardBorder)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -569,12 +533,12 @@ struct FeedPostRow: View {
         Button(action: onExpandToggle) {
             Image(systemName: "plus")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(expandedReactionPost == post.id ? Color.recordAccent : Color.recordMuted)
+                .foregroundStyle(expandedReactionPost == post.id ? Color.recordAccent : Color.recordSecondary)
                 .rotationEffect(.degrees(expandedReactionPost == post.id ? 45 : 0))
                 .animation(.spring(response: 0.35, dampingFraction: 0.85), value: expandedReactionPost)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 9)
-                .background(Color.recordSurface2)
+                .background(Color.recordCardBorder)
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -606,11 +570,6 @@ struct MusicLink: View {
         }
     }
 }
-
-#Preview {
-    ContentView()
-}
-
         
                 
                 

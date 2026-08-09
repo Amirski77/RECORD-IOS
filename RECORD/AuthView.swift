@@ -41,27 +41,27 @@ struct AuthView: View {
                 // FIELDS
                 VStack(spacing: 12) {
                     if isSignUp {
-                        TextField("", text: $username, prompt: Text("Username").foregroundColor(.recordDim))
+                        TextField("", text: $username, prompt: Text("Username").foregroundColor(.recordTertiary))
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding()
-                            .background(Color.recordSurface)
+                            .background(Color.recordSeparator)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .foregroundStyle(Color.recordText)
                     }
 
-                    TextField("", text: $email, prompt: Text("Email").foregroundColor(.recordDim))
+                    TextField("", text: $email, prompt: Text("Email").foregroundColor(.recordTertiary))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.emailAddress)
                         .padding()
-                        .background(Color.recordSurface)
+                        .background(Color.recordSeparator)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .foregroundStyle(Color.recordText)
 
-                    SecureField("", text: $password, prompt: Text("Password").foregroundColor(.recordDim))
+                    SecureField("", text: $password, prompt: Text("Password").foregroundColor(.recordTertiary))
                         .padding()
-                        .background(Color.recordSurface)
+                        .background(Color.recordSeparator)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .foregroundStyle(Color.recordText)
                 }
@@ -69,7 +69,7 @@ struct AuthView: View {
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.sans(12))
-                        .foregroundStyle(Color.recordError)
+                        .foregroundStyle(Color.recordDestructive)
                 }
                 
                 // MAIN BUTTON
@@ -94,7 +94,7 @@ struct AuthView: View {
                 } label: {
                     Text(isSignUp ? "Already have an account? Log in" : "No account? Sign up")
                         .font(.sans(13))
-                        .foregroundStyle(Color.recordMuted)
+                        .foregroundStyle(Color.recordSecondary)
                 }
                 .buttonStyle(.plain)
 

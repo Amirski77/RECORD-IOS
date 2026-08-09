@@ -4,35 +4,118 @@
 //
 //  Created by Amir Rashidov on 22.06.2026.
 //
+//  Design tokens — transcribed from "RECORD — Build Spec" §1.
+//  If a colour is not in this file, it does not go in the app.
+//
 
 import SwiftUI
 
+// MARK: - Hex helper
+
 extension Color {
-    static let recordBG = Color(red: 0.043, green: 0.043, blue: 0.043)   // #0b0b0b
-    static let recordSurface = Color(red: 0.11, green: 0.11, blue: 0.11) // #1c1c1c
-    static let recordSurface2 = Color(red: 0.14, green: 0.14, blue: 0.14)// #242424
-    static let recordAccent = Color(red: 1.0, green: 0.176, blue: 0.584)   // #FF2D95
-    static let recordText = Color(red: 0.957, green: 0.953, blue: 0.941) // #f4f3f0
-    static let recordMuted = Color(red: 0.54, green: 0.54, blue: 0.54)   // #8a8a8a
-    static let recordDim = Color(red: 0.435, green: 0.435, blue: 0.435)  // #6f6f6f
-    static let recordError = Color(red: 0.945, green: 0.37, blue: 0.42)
+    /// Color(hex: 0xFF2D95) — matches the spec's notation one-to-one.
+    init(hex: UInt32, opacity: Double = 1) {
+        let r = Double((hex >> 16) & 0xFF) / 255
+        let g = Double((hex >> 8) & 0xFF) / 255
+        let b = Double(hex & 0xFF) / 255
+        self.init(.sRGB, red: r, green: g, blue: b, opacity: opacity)
+    }
 }
 
+// MARK: - Colour tokens
+
+extension Color {
+
+    // Surfaces
+    static let recordBG          = Color(hex: 0x0b0b0b)  // page
+    static let recordCardTop     = Color(hex: 0x151515)  // card gradient top
+    static let recordCardBottom  = Color(hex: 0x101010)  // card gradient bottom
+    static let recordCardBorder  = Color(hex: 0x232323)  // card hairline
+    static let recordSeparator   = Color(hex: 0x1c1c1c)  // between list rows
+    static let recordRule        = Color(hex: 0x1d1d1d)  // section header rules
+
+    // Avatars / inert chips — never accent (spec §2)
+    static let recordAvatarFill   = Color(hex: 0x141414)
+    static let recordAvatarBorder = Color(hex: 0x262626)
+
+    // Text
+    static let recordText       = Color(hex: 0xf2f1ee)  // body, titles
+    static let recordDisplay    = Color(hex: 0xf4f3f0)  // serif headings, numerals
+    static let recordSecondary  = Color(hex: 0x8a8a86)  // subtitles, artist names
+    static let recordTertiary   = Color(hex: 0x6a6a66)  // uppercase labels
+    static let recordFaint      = Color(hex: 0x55554f)  // least-important meta
+    static let recordDot        = Color(hex: 0x393936)  // the · in meta lines
+
+    // Accent — spec §2. At most TWO accent elements per screen.
+    static let recordAccent       = Color(hex: 0xFF2D95)
+    static let recordAccentDark   = Color(hex: 0xB00A5F)  // pressed
+    static let recordInk          = Color(hex: 0x16000B)  // text on accent fills
+    static let recordAccentBright = Color(hex: 0xFFEAF3)  // active streak numeral, my reaction
+    static let recordAccentMid    = Color(hex: 0xFF8FBF)  // active streak label, "connected"
+
+    // Streak — at risk
+    static let recordCaution     = Color(hex: 0xF2C14E)
+    static let recordCautionDim  = Color(hex: 0x9A7B33)
+
+    // Destructive
+    static let recordDestructive = Color(hex: 0xc25f5f)
+}
+
+// MARK: - Gradients
+
+extension LinearGradient {
+    /// Raised card fill — spec §1.
+    static let recordCard = LinearGradient(
+        colors: [.recordCardTop, .recordCardBottom],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+}
+
+// MARK: - Deprecated aliases
+//
+// Keeps the v1 screens compiling while we rewrite them one at a time. Xcode
+// shows a warning with a one-click fix-it at every call site — clear them as
+// you touch each screen, then delete this section.
+//
+// Values are unchanged except where noted.
+
+extension Color {
+    @available(*, deprecated, renamed: "recordSeparator")
+    static let recordSurface = Color.recordSeparator          // #1c1c1c — same
+
+    @available(*, deprecated, renamed: "recordCardBorder")
+    static let recordSurface2 = Color.recordCardBorder        // #242424 → #232323
+
+    @available(*, deprecated, renamed: "recordSecondary")
+    static let recordMuted = Color.recordSecondary            // #8a8a8a → #8a8a86
+
+    @available(*, deprecated, renamed: "recordTertiary")
+    static let recordDim = Color.recordTertiary               // #6f6f6f → #6a6a66
+
+    @available(*, deprecated, renamed: "recordDestructive")
+    static let recordError = Color.recordDestructive          // coral → #c25f5f (spec)
+}
+
+// MARK: - Type
+
 extension Font {
+    /// Spectral — display / titles. Weights 700, 800.
     static func display(_ size: CGFloat, _ weight: Spectral = .bold) -> Font {
         .custom(weight.rawValue, size: size, relativeTo: .body)
     }
     enum Spectral: String {
-        case bold      = "Spectral-Bold"
-        case extraBold = "Spectral-ExtraBold"
+        case bold      = "Spectral-Bold"       // 700
+        case extraBold = "Spectral-ExtraBold"  // 800
     }
 
+    /// Geist — UI / body.
     static func sans(_ size: CGFloat, _ weight: Geist = .regular) -> Font {
         .custom(weight.rawValue, size: size, relativeTo: .body)
     }
     enum Geist: String {
-        case regular = "Geist-Regular"
-        case medium  = "Geist-Medium"
-        case bold    = "Geist-Bold"
+        case regular = "Geist-Regular"  // 400
+        case medium  = "Geist-Medium"   // 500
+        case bold    = "Geist-Bold"     // 700
     }
 }

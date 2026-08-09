@@ -9,6 +9,7 @@ import SwiftUI
 import Supabase
 
 struct RootView: View {
+    @StateObject private var session = Session()
     @State private var isLoggedIn = false
     @State private var checking = true
 
@@ -18,21 +19,29 @@ struct RootView: View {
                 // brief loading while we check for an existing session
                 Color.recordBG.ignoresSafeArea()
             } else if isLoggedIn {
-                ContentView()
+                MainTabView()
+                    .environmentObject(session)
             } else {
                 AuthView()
             }
         }
         .task {
             // check if there's already a logged-in session
-            if let _ = try? await supabase.auth.session {
+            if (try? await supabase.auth.session) != nil {
                 isLoggedIn = true
+                await session.refresh()
             }
             checking = false
 
             // listen for login/logout changes
             for await state in supabase.auth.authStateChanges {
-                isLoggedIn = state.session != nil
+                let loggedIn = state.session != nil
+                isLoggedIn = loggedIn
+                if loggedIn {
+                    await session.refresh()
+                } else {
+                    session.clear()
+                }
             }
         }
     }
