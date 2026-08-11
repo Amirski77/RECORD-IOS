@@ -35,7 +35,7 @@ struct ProfileView: View {
     @State private var joinedDate: String = ""
     @State private var appleMusicProfile: String?
     @State private var spotifyProfile: String?
-    @StateObject private var audio = AudioPlayer()
+    @EnvironmentObject private var audio: AudioPlayer
 
     @Environment(\.dismiss) private var dismiss
 
@@ -69,6 +69,7 @@ struct ProfileView: View {
                                 Text(metaLineAttributed)
                                 .font(.sans(12, .medium))
                                 .tracking(0.5)
+                                .opacity(loading ? 0 : 1)
                                 
                                 // service links
                                 HStack(spacing: 10) {
@@ -171,9 +172,7 @@ struct ProfileView: View {
         .task {
             await load()
         }
-        .onDisappear {
-            audio.stop()
-        }
+        
         .onChange(of: selectedItem) { _, newItem in
             Task { await uploadAvatar(newItem) }
         }

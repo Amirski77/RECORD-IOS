@@ -10,6 +10,7 @@ import Supabase
 
 struct RootView: View {
     @StateObject private var session = Session()
+    @StateObject private var audio = AudioPlayer()
     @State private var isLoggedIn = false
     @State private var checking = true
 
@@ -21,6 +22,7 @@ struct RootView: View {
             } else if isLoggedIn {
                 MainTabView()
                     .environmentObject(session)
+                    .environmentObject(audio)
             } else {
                 AuthView()
             }

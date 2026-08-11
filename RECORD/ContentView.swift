@@ -20,7 +20,7 @@ struct ContentView: View {
     @Binding var path: NavigationPath
     
     @State private var username = "..."
-    @State private var posts: [FeedPost] = []
+    @State private var items: [TodayFeedItem] = []
     @State private var reactionCounts: [Int: [String: Int]] = [:] //[postID: [type: count]]
     @State private var myReactionsByPost: [Int: String] = [:] //[postID: myType]
     @State private var myUserID: String = ""
@@ -28,7 +28,17 @@ struct ContentView: View {
     @State private var streak: Streak = Streak(count: 0, lastPostDate: nil)
     @State private var avatarURL: String?
     @State private var streakPopped = false
-    @StateObject private var audio = AudioPlayer()
+    @State private var loaded = false
+    @EnvironmentObject private var audio: AudioPlayer
+    
+    /// True when friends have posted but you haven't. The server decides this — we just read the flag it sent rather than inferring it from nil fields.
+    private var isLocked: Bool {
+        items.contains { $0.locked }
+    }
+    
+    private var myRecord: TodayFeedItem? {
+        items.first { $0.isMine}
+    }
     
     private var todayDateline: String {
         let f = DateFormatter()
@@ -100,22 +110,55 @@ struct ContentView: View {
                             }
                         }
                         
-                        Text("What are you playing today?")
-                            .font(.display(24, .bold))
-                            .foregroundStyle(Color.recordText)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        
-                        NavigationLink(value: "search") {
-                            Text("Choose a song  →")
-                                .font(.sans(13.5, .bold))
-                                .foregroundStyle(.black)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                                .background(Color.recordAccent)
-                                .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
+                        if let mine = myRecord {
+                            // Posted — the card becomes your record.
+                                                    HStack(spacing: 14) {
+                                                        AsyncImage(url: URL(string: mine.album_art_url ?? "")) { image in
+                                                            image.resizable()
+                                                        } placeholder: {
+                                                            Color.recordSeparator
+                                                        }
+                                                        .frame(width: 56, height: 56)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                                                        VStack(alignment: .leading, spacing: 3) {
+                                                            Text(mine.track_name ?? "")
+                                                                .font(.display(20, .bold))
+                                                                .foregroundStyle(Color.recordText)
+                                                                .lineLimit(1)
+                                                            Text(mine.artist_name ?? "")
+                                                                .font(.sans(14))
+                                                                .foregroundStyle(Color.recordSecondary)
+                                                                .lineLimit(1)
+                                                        }
+
+                                                        Spacer(minLength: 0)
+                                                    }
+
+                                                    if let note = mine.note, !note.isEmpty {
+                                                        Text(note)
+                                                            .font(.sans(13))
+                                                            .foregroundStyle(Color.recordSecondary)
+                                                            .padding(.top, 2)
+                                                    }
+                                                } else {
+                                                    Text("What are you playing today?")
+                                                        .font(.display(24, .bold))
+                                                        .foregroundStyle(Color.recordText)
+                                                        .lineLimit(1)
+                                                        .minimumScaleFactor(0.8)
+
+                                                    NavigationLink(value: "search") {
+                                                        Text("Choose a song  →")
+                                                            .font(.sans(13.5, .bold))
+                                                            .foregroundStyle(.black)
+                                                            .padding(.horizontal, 20)
+                                                            .padding(.vertical, 12)
+                                                            .background(Color.recordAccent)
+                                                            .clipShape(Capsule())
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                }
 
                     }
                     .padding(20)
@@ -154,8 +197,10 @@ struct ContentView: View {
                     // FEED — or empty state if no posts yet
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                    if posts.isEmpty {
-                        VStack(spacing: 8) {
+                            if !loaded {
+                                Color.clear.frame(height: 220)
+                            } else if items.isEmpty {
+                                VStack(spacing: 8) {
                             Text("00")
                                 .font(.display(72, .extraBold))
                                 .foregroundStyle(Color.recordSeparator)
@@ -174,8 +219,13 @@ struct ContentView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.top, 40)
+                    } else if isLocked {
+                        LockedEditionView(
+                            count: items.count,
+                            seeds: items.map { $0.id }
+                        )
                     } else {
-                        ForEach(posts) { post in
+                        ForEach(items) { post in
                             FeedPostRow(
                                 post: post,
                                 myUserID: myUserID,
@@ -274,12 +324,14 @@ struct ContentView: View {
             }
         }
         //2. load today's posts
-        posts = await fetchTodayFeed()
+        items = await fetchTodayFeed()
         //3. load reactions for those posts, then shape them
-        let postIDs = posts.map { $0.id }
+        let postIDs = items.map { $0.id }
         let reactions = await fetchReactions(postIDs: postIDs)
         reactionCounts = countReactions(reactions)
         myReactionsByPost = myReactions(reactions, myUserID: myUserID)
+        
+        loaded = true
     }
     
     func tapReaction(postID: Int, type: String) async {
@@ -314,7 +366,7 @@ struct ContentView: View {
             }
             
             //reload reactions so counts + my-pick refresh
-            let postIDs = posts.map { $0.id }
+            let postIDs = items.map { $0.id }
             let reactions = await fetchReactions(postIDs: postIDs)
             reactionCounts = countReactions(reactions)
             myReactionsByPost = myReactions(reactions, myUserID: myUserID)
@@ -362,7 +414,7 @@ struct ContentView: View {
 
 // MARK: - FeedPostRow
 struct FeedPostRow: View {
-    let post: FeedPost
+    let post: TodayFeedItem
     let myUserID: String
     let expandedReactionPost: Int?
     let reactionCounts: [String: Int]
@@ -393,7 +445,7 @@ struct FeedPostRow: View {
     
     private var albumArtView: some View {
         ZStack {
-            AsyncImage(url: URL(string: post.album_art_url)) { image in
+            AsyncImage(url: URL(string: post.album_art_url ?? "")) { image in
                 image.resizable()
             } placeholder: {
                 Color.recordSeparator
@@ -419,8 +471,8 @@ struct FeedPostRow: View {
     }
     
     private var usernameLink: some View {
-        NavigationLink(value: ProfileRoute(userID: post.user_id, username: post.profiles.username, isMe: post.user_id == myUserID)) {
-            Text(post.profiles.username)
+        NavigationLink(value: ProfileRoute(userID: post.user_id, username: post.username, isMe: post.user_id == myUserID)) {
+            Text(post.username)
                 .font(.sans(11, .medium))
                 .tracking(0.5)
                 .foregroundStyle(Color.recordAccent)
@@ -429,14 +481,14 @@ struct FeedPostRow: View {
     }
     
     private var trackNameText: some View {
-        Text(post.track_name)
+        Text(post.track_name ?? "")
             .font(.display(19, .bold))
             .foregroundStyle(Color.recordText)
             .lineLimit(1)
     }
     
     private var artistNameText: some View {
-        Text(post.artist_name)
+        Text(post.artist_name ?? "")
             .font(.sans(15))
             .foregroundStyle(Color.recordSecondary)
             .lineLimit(1)

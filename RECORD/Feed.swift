@@ -8,22 +8,21 @@
 import Foundation
 import Supabase
 
-func fetchTodayFeed() async -> [FeedPost] {
-    // Start of today, in UTC
-    var utcCalendar = Calendar(identifier: .gregorian)
-    utcCalendar.timeZone = TimeZone(identifier: "UTC")!
-    let startOfDayUTC = utcCalendar.startOfDay(for: Date())
-    let iso = ISO8601DateFormatter().string(from: startOfDayUTC)
-
+func fetchTodayFeed() async -> [TodayFeedItem] {
     do {
-        let posts: [FeedPost] = try await supabase
-            .from("posts")
-            .select("id, user_id, track_name, artist_name, album_art_url, preview_url, apple_music_url, spotify_url, note, created_at, profiles(username)")
-            .gte("created_at", value: iso) // today only
-            .order("created_at", ascending: false) // newest first
+        var items: [TodayFeedItem] = try await supabase
+            .rpc("today_feed")
             .execute()
             .value
-        return posts
+
+        // Mark which row is yours so the UI can tell them apart.
+        if let me = try? await supabase.auth.session.user.id.uuidString.lowercased() {
+            for i in items.indices {
+                items[i].isMine = (items[i].user_id == me)
+            }
+        }
+
+        return items
     } catch {
         print("Feed load failed: \(error)")
         return []
