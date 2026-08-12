@@ -112,53 +112,70 @@ struct ContentView: View {
                         
                         if let mine = myRecord {
                             // Posted — the card becomes your record.
-                                                    HStack(spacing: 14) {
-                                                        AsyncImage(url: URL(string: mine.album_art_url ?? "")) { image in
-                                                            image.resizable()
-                                                        } placeholder: {
-                                                            Color.recordSeparator
-                                                        }
-                                                        .frame(width: 56, height: 56)
-                                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    AsyncImage(url: URL(string: mine.album_art_url ?? "")) { image in
+                                        image.resizable()
+                                    } placeholder: {
+                                        Color.recordSeparator
+                                    }
+                                    .frame(width: 64, height: 64)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
 
-                                                        VStack(alignment: .leading, spacing: 3) {
-                                                            Text(mine.track_name ?? "")
-                                                                .font(.display(20, .bold))
-                                                                .foregroundStyle(Color.recordText)
-                                                                .lineLimit(1)
-                                                            Text(mine.artist_name ?? "")
-                                                                .font(.sans(14))
-                                                                .foregroundStyle(Color.recordSecondary)
-                                                                .lineLimit(1)
-                                                        }
+                                    if let preview = mine.preview_url {
+                                        let isPlaying = audio.currentlyPlayingURL == preview
+                                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(.white)
+                                            .opacity(isPlaying ? 1.0 : 0.4)
+                                            .shadow(radius: 3)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if let preview = mine.preview_url {
+                                        audio.toggle(urlString: preview)
+                                    }
+                                }
 
-                                                        Spacer(minLength: 0)
-                                                    }
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(mine.track_name ?? "")
+                                        .font(.display(20, .bold))
+                                        .foregroundStyle(Color.recordText)
+                                        .lineLimit(1)
+                                    Text(mine.artist_name ?? "")
+                                        .font(.sans(14))
+                                        .foregroundStyle(Color.recordSecondary)
+                                        .lineLimit(1)
+                                }
+                                
+                                Spacer(minLength: 0)
+                            }
 
-                                                    if let note = mine.note, !note.isEmpty {
-                                                        Text(note)
-                                                            .font(.sans(13))
-                                                            .foregroundStyle(Color.recordSecondary)
-                                                            .padding(.top, 2)
-                                                    }
-                                                } else {
-                                                    Text("What are you playing today?")
-                                                        .font(.display(24, .bold))
-                                                        .foregroundStyle(Color.recordText)
-                                                        .lineLimit(1)
-                                                        .minimumScaleFactor(0.8)
+                            if let note = mine.note, !note.isEmpty {
+                                Text(note)
+                                    .font(.sans(13))
+                                    .foregroundStyle(Color.recordSecondary)
+                                    .padding(.top, 2)
+                            }
+                        } else {
+                            Text("What are you playing today?")
+                                .font(.display(24, .bold))
+                                .foregroundStyle(Color.recordText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
 
-                                                    NavigationLink(value: "search") {
-                                                        Text("Choose a song  →")
-                                                            .font(.sans(13.5, .bold))
-                                                            .foregroundStyle(.black)
-                                                            .padding(.horizontal, 20)
-                                                            .padding(.vertical, 12)
-                                                            .background(Color.recordAccent)
-                                                            .clipShape(Capsule())
-                                                    }
-                                                    .buttonStyle(.plain)
-                                                }
+                            NavigationLink(value: "search") {
+                                Text("Choose a song  →")
+                                    .font(.sans(13.5, .bold))
+                                    .foregroundStyle(.black)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(Color.recordAccent)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
 
                     }
                     .padding(20)
@@ -225,7 +242,7 @@ struct ContentView: View {
                             seeds: items.map { $0.id }
                         )
                     } else {
-                        ForEach(items) { post in
+                        ForEach(items.filter { !$0.isMine }) { post in
                             FeedPostRow(
                                 post: post,
                                 myUserID: myUserID,
