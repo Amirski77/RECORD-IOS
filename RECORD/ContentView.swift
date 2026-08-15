@@ -10,7 +10,6 @@ internal import Auth
 import Supabase
 
 struct ProfileWithStreak: Decodable {
-    let username: String
     let current_streak: Int
     let last_post_date: String?
     let avatar_url: String?
@@ -19,7 +18,6 @@ struct ProfileWithStreak: Decodable {
 struct ContentView: View {
     @Binding var path: NavigationPath
     
-    @State private var username = "..."
     @State private var items: [TodayFeedItem] = []
     @State private var reactionCounts: [Int: [String: Int]] = [:] //[postID: [type: count]]
     @State private var myReactionsByPost: [Int: String] = [:] //[postID: myType]
@@ -80,48 +78,49 @@ struct ContentView: View {
                     
                     //THE GREEN "POST" CARD
                     VStack(alignment: .leading, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text("YOUR RECORD · TODAY")
-                                    .font(.sans(10, .medium))
-                                    .tracking(1.5)
-                                    .foregroundStyle(Color.recordAccent)
-                                Spacer()
-                                if streak.effectiveCount > 0 || streak.state == .broken {
-                                    HStack {
-                                        Text("\(streak.effectiveCount)")
-                                            .font(.display(17, .extraBold))
-                                            .foregroundStyle(streakNumberColor)
-                                            .scaleEffect(streakPopped ? 1.3 : 1.0)
-                                        Text("DAY STREAK")
-                                            .font(.sans(9.5, .medium))
-                                            .tracking(1)
-                                            .foregroundStyle(streakLabelColor)
-                                    }
-                                }
-                            }
-                            
-                            // NUDGE LINE - own line, right-aligned
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("YOUR RECORD · TODAY")
+                                .font(.sans(10, .medium))
+                                .tracking(1.5)
+                                .foregroundStyle(Color.recordAccent)
+
+                            Spacer(minLength: 8)
+
                             if let nudge = streakNudge {
                                 Text(nudge)
                                     .font(.sans(10.5))
                                     .foregroundStyle(streakLabelColor)
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                                    .lineLimit(1)
+                                    .layoutPriority(-1)
+                            }
+
+                            if streak.effectiveCount > 0 || streak.state == .broken {
+                                HStack(spacing: 5) {
+                                    Text("\(streak.effectiveCount)")
+                                        .font(.display(17, .extraBold))
+                                        .foregroundStyle(streakNumberColor)
+                                        .scaleEffect(streakPopped ? 1.3 : 1.0)
+                                    Text("DAY STREAK")
+                                        .font(.sans(9.5, .medium))
+                                        .tracking(1)
+                                        .foregroundStyle(streakLabelColor)
+                                }
+                                .fixedSize()
                             }
                         }
                         
                         if let mine = myRecord {
                             // Posted — the card becomes your record.
-                            HStack(spacing: 14) {
+                            HStack(alignment: .top, spacing: 14) {
                                 ZStack {
                                     AsyncImage(url: URL(string: mine.album_art_url ?? "")) { image in
                                         image.resizable()
                                     } placeholder: {
                                         Color.recordSeparator
                                     }
-                                    .frame(width: 64, height: 64)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-
+                                    .frame(width: 68, height: 68)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    
                                     if let preview = mine.preview_url {
                                         let isPlaying = audio.currentlyPlayingURL == preview
                                         Image(systemName: isPlaying ? "pause.fill" : "play.fill")
@@ -137,27 +136,27 @@ struct ContentView: View {
                                         audio.toggle(urlString: preview)
                                     }
                                 }
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(mine.track_name ?? "")
-                                        .font(.display(20, .bold))
-                                        .foregroundStyle(Color.recordText)
-                                        .lineLimit(1)
-                                    Text(mine.artist_name ?? "")
-                                        .font(.sans(14))
-                                        .foregroundStyle(Color.recordSecondary)
-                                        .lineLimit(1)
-                                }
                                 
+                                RecordDetails(track: mine.track_name ?? "",
+                                              artist: mine.artist_name ?? "",
+                                              note: mine.note)
+
                                 Spacer(minLength: 0)
                             }
-
-                            if let note = mine.note, !note.isEmpty {
-                                Text(note)
-                                    .font(.sans(13))
-                                    .foregroundStyle(Color.recordSecondary)
-                                    .padding(.top, 2)
+                        
+                            
+                            HStack(spacing: 8) {
+                                if let appleURL = mine.apple_music_url,
+                                   let url = URL(string: appleURL) {
+                                    MusicLink(url: url, imageName: "apple-music-logo-white", text: "Apple Music")
+                                }
+                                if let spotifyURL = mine.spotify_url,
+                                   let url = URL(string: spotifyURL) {
+                                    MusicLink(url: url, imageName: "spotify-logo-white", text: "Spotify")
+                                }
                             }
+                            .padding(.top, 12)
+                            
                         } else {
                             Text("What are you playing today?")
                                 .font(.display(24, .bold))
@@ -203,13 +202,15 @@ struct ContentView: View {
                     )
                     
                     //TODAY'S RECORDS heading
-                    Text("TODAY'S RECORDS")
-                        .font(.display(16, .bold))
-                        .tracking(1)
-                        .foregroundStyle(Color.recordText)
-                    Rectangle()
-                        .fill(Color.recordTertiary.opacity(0.3))
-                        .frame(height: 1)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("TODAY'S RECORDS")
+                            .font(.display(16, .bold))
+                            .tracking(1)
+                            .foregroundStyle(Color.recordText)
+                        Rectangle()
+                            .fill(Color.recordTertiary.opacity(0.3))
+                            .frame(height: 1)
+                    }
                     
                     // FEED — or empty state if no posts yet
                     ScrollView {
@@ -266,6 +267,9 @@ struct ContentView: View {
                     }   // closes else
                         }   // closes inner VStack (ScrollView content)
                     }   // closes ScrollView
+                    .scrollIndicators(.hidden)
+                    .padding(.top, -8)
+                    .refreshable { await loadFeedAndReactions() }
                 }   // closes outer VStack
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
@@ -311,12 +315,11 @@ struct ContentView: View {
             
             let profile: ProfileWithStreak = try await supabase
                 .from("profiles")
-                .select("username, current_streak, last_post_date, avatar_url")
+                .select("current_streak, last_post_date, avatar_url")
                 .eq("id", value: userID)
                 .single()
                 .execute()
                 .value
-            username = profile.username
             avatarURL = profile.avatar_url
             
             var lastDate: Date? = nil
@@ -393,14 +396,6 @@ struct ContentView: View {
         }
     }
     
-    func logOut() async {
-        do {
-            try await supabase.auth.signOut()
-        } catch {
-            print("Logout failed: \(error)")
-        }
-    }
-    
     var streakNumberColor: Color {
         switch streak.state {
         case .active: return Color(red: 1.0, green: 0.918, blue: 0.953)
@@ -422,9 +417,9 @@ struct ContentView: View {
     var streakNudge: String? {
         switch streak.state {
         case .active: return nil
-        case .dayOne: return "new streak"
+        case .dayOne: return nil
         case .atRisk: return "post before midnight"
-        case .broken: return streak.effectiveCount == 0 && streak.lastPostDate != nil ? "start again" : nil
+        case .broken: return streak.effectiveCount == 0 && streak.lastPostDate != nil ? "start over" : nil
         }
     }
 }
@@ -448,9 +443,11 @@ struct FeedPostRow: View {
             // Text column
             VStack(alignment: .leading, spacing: 3) {
                 usernameLink
-                trackNameText
-                artistNameText
-                noteText
+                RecordDetails(track: post.track_name ?? "",
+                              artist: post.artist_name ?? "",
+                              note: post.note,
+                              trackSize: 19)
+                    .padding(.top, 1)
                 musicLinksView
                 reactionsRow
             }
@@ -495,30 +492,6 @@ struct FeedPostRow: View {
                 .foregroundStyle(Color.recordAccent)
         }
         .buttonStyle(.plain)
-    }
-    
-    private var trackNameText: some View {
-        Text(post.track_name ?? "")
-            .font(.display(19, .bold))
-            .foregroundStyle(Color.recordText)
-            .lineLimit(1)
-    }
-    
-    private var artistNameText: some View {
-        Text(post.artist_name ?? "")
-            .font(.sans(15))
-            .foregroundStyle(Color.recordSecondary)
-            .lineLimit(1)
-    }
-    
-    @ViewBuilder
-    private var noteText: some View {
-        if let note = post.note, !note.isEmpty {
-            Text(note)
-                .font(.sans(13))
-                .foregroundStyle(Color.recordSecondary)
-                .padding(.top, 2)
-        }
     }
     
     private var musicLinksView: some View {

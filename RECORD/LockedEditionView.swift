@@ -40,7 +40,7 @@ struct LockedEditionView: View {
                 .accessibilityHidden(true)
 
                 VStack(spacing: 7) {
-                    Text("^[\(count) friend](inflect: true) have posted.")
+                    Text(count == 1 ? "1 friend has posted." : "\(count) friends have posted.")
                         .font(.display(21, .bold))
                         .foregroundStyle(Color.recordDisplay)
                         .multilineTextAlignment(.center)

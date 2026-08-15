@@ -141,13 +141,13 @@ struct ProfileView: View {
                     Rectangle()
                         .fill(Color.recordSeparator)
                         .frame(height: 1)
-                        .padding(.vertical, 20)
+                        .padding(.top, 20)
                     
                     // THE DIARY header
                     Text("THE DIARY")
                         .font(.display(20, .bold))
                         .foregroundStyle(Color.recordText)
-                        .padding(.top, 24)
+                        .padding(.top, 22)
                         .padding(.bottom, 4)
 
                     Rectangle()
@@ -167,6 +167,7 @@ struct ProfileView: View {
                 }
                 .padding(20)
             }
+            .refreshable { await load() }
         }
         .navigationBarBackButtonHidden(false)
         .task {
@@ -181,15 +182,6 @@ struct ProfileView: View {
                 .presentationDetents([.height(360)])
                 .presentationBackground(Color.recordBG)
         }
-    }
-
-    // STAT LINE
-    var statLine: String {
-        var parts = ["\(totalRecords) record\(totalRecords == 1 ? "" : "s")"]
-        if bestStreak > 1 {
-            parts.append("\(bestStreak) day best")
-        }
-        return parts.joined(separator: " · ")
     }
 
     // EMPTY STATE
@@ -350,28 +342,10 @@ struct ProfileView: View {
                 }
                 
                 // track + artist + note
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(post.track_name)
-                        .font(.display(17, .bold))
-                        .foregroundStyle(Color.recordText)
-                        .lineLimit(1)
-                    Text(post.artist_name)
-                        .font(.sans(13))
-                        .foregroundStyle(Color.recordSecondary)
-                        .lineLimit(1)
-                    if let note = post.note, !note.isEmpty {
-                        Text(note)
-                            .font(.sans(13))
-                            .italic()
-                            .foregroundStyle(Color.recordSecondary)
-                            .padding(.leading, 8)
-                            .overlay(
-                                Rectangle().fill(Color.recordCardBorder).frame(width: 2),
-                                alignment: .leading
-                            )
-                            .padding(.top, 2)
-                    }
-                }
+                RecordDetails(track: post.track_name,
+                              artist: post.artist_name,
+                              note: post.note,
+                              trackSize: 17)
                 Spacer()
             }
             .padding(.vertical, 12)
@@ -576,16 +550,6 @@ struct ProfileView: View {
         return result
     }
     
-        var metaLine: String {
-            var parts = ["\(totalRecords) RECORD\(totalRecords == 1 ? "" : "S")"]
-            if streak.effectiveCount > 0 {
-                parts.append("\(streak.effectiveCount) DAY STREAK")
-            }
-            if !joinedDate.isEmpty {
-                parts.append("SINCE \(joinedDate)")
-            }
-            return parts.joined(separator: " · ")
-        }
 }
 
 struct ProfileFullRow: Decodable {

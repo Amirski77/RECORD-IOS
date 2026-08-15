@@ -41,7 +41,7 @@ extension Color {
     // Text
     static let recordText       = Color(hex: 0xf2f1ee)  // body, titles
     static let recordDisplay    = Color(hex: 0xf4f3f0)  // serif headings, numerals
-    static let recordSecondary  = Color(hex: 0x8a8a86)  // subtitles, artist names
+    static let recordSecondary  = Color(hex: 0x9a9a9a)  // subtitles, artist names
     static let recordTertiary   = Color(hex: 0x6a6a66)  // uppercase labels
     static let recordFaint      = Color(hex: 0x55554f)  // least-important meta
     static let recordDot        = Color(hex: 0x393936)  // the · in meta lines
@@ -59,6 +59,11 @@ extension Color {
 
     // Destructive
     static let recordDestructive = Color(hex: 0xc25f5f)
+    
+    static let recordNote = Color( red: 0.714, green: 0.710, blue: 0.690)
+    
+    static let recordArtist   = Color(red: 0.604, green: 0.604, blue: 0.604)  // #9a9a9a
+    static let recordNoteRule = Color(red: 0.165, green: 0.165, blue: 0.165)  // #2a2a2a
 }
 
 // MARK: - Gradients
@@ -117,5 +122,9 @@ extension Font {
         case regular = "Geist-Regular"  // 400
         case medium  = "Geist-Medium"   // 500
         case bold    = "Geist-Bold"     // 700
+    }
+    
+    static func displayItalic(_ size: CGFloat) -> Font {
+        .custom("Spectral-Italic", size: size, relativeTo: .body)
     }
 }
