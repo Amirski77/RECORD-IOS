@@ -74,7 +74,7 @@ struct ContentView: View {
                     
                     //THE GREEN "POST" CARD
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .top, spacing: 8) {
+                        HStack(alignment: .lastTextBaseline, spacing: 8) {
                             Text("YOUR RECORD · TODAY")
                                 .font(.sans(10, .medium))
                                 .tracking(1.5)
