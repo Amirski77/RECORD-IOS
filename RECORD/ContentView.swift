@@ -48,10 +48,6 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
-                //Full-screen dark background
-                Color.recordBG
-                    .ignoresSafeArea()
-                
                 VStack(alignment: .leading, spacing: 24) {
                     
                     // MASTHEAD
@@ -78,7 +74,7 @@ struct ContentView: View {
                     
                     //THE GREEN "POST" CARD
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        HStack(alignment: .top, spacing: 8) {
                             Text("YOUR RECORD · TODAY")
                                 .font(.sans(10, .medium))
                                 .tracking(1.5)
@@ -86,27 +82,25 @@ struct ContentView: View {
 
                             Spacer(minLength: 8)
 
-                            if let nudge = streakNudge {
-                                Text(nudge)
-                                    .font(.sans(10.5))
-                                    .foregroundStyle(streakLabelColor)
-                                    .lineLimit(1)
-                                    .layoutPriority(-1)
-                            }
-
-                            if streak.effectiveCount > 0 || streak.state == .broken {
-                                HStack(spacing: 5) {
-                                    Text("\(streak.effectiveCount)")
-                                        .font(.display(17, .extraBold))
-                                        .foregroundStyle(streakNumberColor)
-                                        .scaleEffect(streakPopped ? 1.3 : 1.0)
-                                    Text("DAY STREAK")
-                                        .font(.sans(9.5, .medium))
-                                        .tracking(1)
+                            VStack(alignment: .trailing, spacing: 1) {                                if streak.effectiveCount > 0 || streak.state == .broken {
+                                    HStack(spacing: 5) {
+                                        Text("\(streak.effectiveCount)")
+                                            .font(.display(17, .extraBold))
+                                            .foregroundStyle(streakNumberColor)
+                                            .scaleEffect(streakPopped ? 1.3 : 1.0)
+                                        Text("DAY STREAK")
+                                            .font(.sans(9.5, .medium))
+                                            .tracking(1)
+                                            .foregroundStyle(streakLabelColor)
+                                    }
+                                }
+                                if let nudge = streakNudge {
+                                    Text(nudge)
+                                        .font(.sans(10))
                                         .foregroundStyle(streakLabelColor)
                                 }
-                                .fixedSize()
                             }
+                            .fixedSize()
                         }
                         
                         if let mine = myRecord {
@@ -146,13 +140,13 @@ struct ContentView: View {
                         
                             
                             HStack(spacing: 8) {
-                                if let appleURL = mine.apple_music_url,
-                                   let url = URL(string: appleURL) {
-                                    MusicLink(url: url, imageName: "apple-music-logo-white", text: "Apple Music")
-                                }
                                 if let spotifyURL = mine.spotify_url,
                                    let url = URL(string: spotifyURL) {
                                     MusicLink(url: url, imageName: "spotify-logo-white", text: "Spotify")
+                                }
+                                if let appleURL = mine.apple_music_url,
+                                   let url = URL(string: appleURL) {
+                                    MusicLink(url: url, imageName: "apple-music-logo-white", text: "Apple Music")
                                 }
                             }
                             .padding(.top, 12)
@@ -268,15 +262,15 @@ struct ContentView: View {
                         }   // closes inner VStack (ScrollView content)
                     }   // closes ScrollView
                     .scrollIndicators(.hidden)
-                    .padding(.top, -8)
+                    .padding(.top, -14)
                     .refreshable { await loadFeedAndReactions() }
                 }   // closes outer VStack
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            }   // closes ZStack — padding + navigationDestination attach here
+            }   // closes ZStack
+            .background(Color.recordBG.ignoresSafeArea())
             .recordDestinations(path: $path)
-            .toolbar(.hidden, for: .tabBar)
             
         }
         .task {
@@ -345,12 +339,14 @@ struct ContentView: View {
         }
         //2. load today's posts
         items = await fetchTodayFeed()
+        guard !Task.isCancelled else { return }
         //3. load reactions for those posts, then shape them
         let postIDs = items.map { $0.id }
         let reactions = await fetchReactions(postIDs: postIDs)
+        guard !Task.isCancelled else { return }
         reactionCounts = countReactions(reactions)
         myReactionsByPost = myReactions(reactions, myUserID: myUserID)
-        
+
         loaded = true
     }
     
@@ -436,27 +432,85 @@ struct FeedPostRow: View {
     let onExpandToggle: () -> Void
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Album art with play button
-            albumArtView
-            
-            // Text column
-            VStack(alignment: .leading, spacing: 3) {
-                usernameLink
-                RecordDetails(track: post.track_name ?? "",
-                              artist: post.artist_name ?? "",
-                              note: post.note,
-                              trackSize: 19)
-                    .padding(.top, 1)
-                musicLinksView
-                reactionsRow
+        VStack(alignment: .leading, spacing: 10) {
+
+            // WHO — avatar, name, time
+            HStack(spacing: 9) {
+                NavigationLink(value: ProfileRoute(userID: post.user_id,
+                                                   username: post.username,
+                                                   isMe: post.user_id == myUserID)) {
+                    HStack(spacing: 9) {
+                        FriendAvatar(username: post.username, url: post.avatar_url)
+                        Text(post.username)
+                            .font(.sans(13, .medium))
+                            .foregroundStyle(Color.recordText)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Text(timeAgo)
+                    .font(.sans(12))
+                    .foregroundStyle(Color.recordTertiary)
+
+                Spacer()
             }
-            
-            Spacer()
+
+            // WHAT — art, record, actions
+            HStack(alignment: .top, spacing: 14) {
+                albumArtView
+
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .center, spacing: 6) {
+                        Text(post.track_name ?? "")
+                            .font(.display(19, .bold))
+                            .foregroundStyle(Color.recordText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                        Spacer(minLength: 4)
+                        if let spotifyURL = post.spotify_url,
+                           let url = URL(string: spotifyURL) {
+                            IconLink(url: url, imageName: "spotify-logo-white")
+                        }
+                        if let appleURL = post.apple_music_url,
+                           let url = URL(string: appleURL) {
+                            IconLink(url: url, imageName: "apple-music-logo-white")
+                        }
+                    }
+
+                    Text(post.artist_name ?? "")
+                        .font(.sans(13))
+                        .foregroundStyle(Color.recordArtist)
+                        .lineLimit(1)
+                        .padding(.top, -2)
+
+                    if let note = post.note, !note.isEmpty {
+                        HStack(alignment: .top, spacing: 10) {
+                            Rectangle()
+                                .fill(Color.recordNoteRule)
+                                .frame(width: 2)
+                            Text(note)
+                                .font(.sans(12.5))
+                                .italic()
+                                .foregroundStyle(Color.recordNote)
+                                .padding(.top, 2)
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
+                    }
+
+                    reactionsRow
+                        .padding(.top, 10)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 14)
+
+        Rectangle()
+            .fill(Color.recordTertiary.opacity(0.3))
+            .frame(height: 1)
     }
-    
+
     private var albumArtView: some View {
         ZStack {
             AsyncImage(url: URL(string: post.album_art_url ?? "")) { image in
@@ -464,8 +518,8 @@ struct FeedPostRow: View {
             } placeholder: {
                 Color.recordSeparator
             }
-            .frame(width: 56, height: 56)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .frame(width: 64, height: 64)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
             
             if let preview = post.preview_url {
                 let isPlaying = audio.currentlyPlayingURL == preview
@@ -484,62 +538,31 @@ struct FeedPostRow: View {
         }
     }
     
-    private var usernameLink: some View {
-        NavigationLink(value: ProfileRoute(userID: post.user_id, username: post.username, isMe: post.user_id == myUserID)) {
-            Text(post.username)
-                .font(.sans(11, .medium))
-                .tracking(0.5)
-                .foregroundStyle(Color.recordAccent)
-        }
-        .buttonStyle(.plain)
-    }
-    
-    private var musicLinksView: some View {
-        HStack(spacing: 8) {
-            if let appleURL = post.apple_music_url,
-               let url = URL(string: appleURL) {
-                MusicLink(url: url, imageName: "apple-music-logo-white", text: "Apple Music")
-            }
-            
-            if let spotifyURL = post.spotify_url,
-               let url = URL(string: spotifyURL) {
-                MusicLink(url: url, imageName: "spotify-logo-white", text: "Spotify")
-            }
-        }
-        .padding(.top, 5)
-    }
-    
     private var reactionsRow: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             if expandedReactionPost == post.id {
                 expandedReactionPicker
             } else {
                 collapsedReactionCounts
             }
-            
             expandToggleButton
         }
-        .padding(.top, 6)
     }
     
     private var expandedReactionPicker: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 2) {
             ForEach(["fire", "heart", "sleepy", "poop"], id: \.self) { type in
                 Button {
                     onReactionTap(type)
                 } label: {
                     Text(emoji(for: type))
-                        .font(.system(size: 17))
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 6)
+                        .font(.system(size: 16))
+                        .frame(width: 30, height: 34)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(Color.recordBG)
-        .clipShape(Capsule())
+        .padding(.horizontal, 4)
         .overlay(Capsule().stroke(Color.recordCardBorder, lineWidth: 1))
         .transition(.move(edge: .trailing).combined(with: .opacity))
     }
@@ -553,19 +576,21 @@ struct FeedPostRow: View {
                 Button {
                     onReactionTap(type)
                 } label: {
-                    HStack(spacing: 3) {
+                    HStack(spacing: 5) {
                         Text(emoji(for: type))
-                            .font(.system(size: 15))
-                        if count >= 2 {
-                            Text("\(count)")
-                                .font(.sans(13, .medium))
-                                .foregroundStyle(Color.recordSecondary)
-                        }
+                            .font(.system(size: 14))
+                        Text("\(count)")
+                            .font(.sans(12, .medium))
+                            .foregroundStyle(isMine ? Color.recordText : Color.recordSecondary)
                     }
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 8)
-                    .background(isMine ? Color.recordAccent.opacity(0.2) : Color.recordCardBorder)
-                    .clipShape(Capsule())
+                    .padding(.horizontal, 11)
+                    .frame(height: 34)
+                    .overlay(
+                        Capsule().stroke(
+                            isMine ? Color.recordAccent : Color.recordCardBorder,
+                            lineWidth: 1
+                        )
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -575,16 +600,44 @@ struct FeedPostRow: View {
     private var expandToggleButton: some View {
         Button(action: onExpandToggle) {
             Image(systemName: "plus")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(expandedReactionPost == post.id ? Color.recordAccent : Color.recordSecondary)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.recordSecondary)
                 .rotationEffect(.degrees(expandedReactionPost == post.id ? 45 : 0))
                 .animation(.spring(response: 0.35, dampingFraction: 0.85), value: expandedReactionPost)
-                .padding(.vertical, 5)
-                .padding(.horizontal, 9)
-                .background(Color.recordCardBorder)
-                .clipShape(Capsule())
+                .frame(width: 34, height: 34)
+                .overlay(Circle().stroke(Color.recordCardBorder, lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+
+    /// "now" / "45m" / "7h" — posts are same-day, so hours is the ceiling.
+    private var timeAgo: String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = f.date(from: post.created_at)
+                ?? ISO8601DateFormatter().date(from: post.created_at) else { return "" }
+
+        let mins = Int(Date().timeIntervalSince(date) / 60)
+        if mins < 1  { return "now" }
+        if mins < 60 { return "\(mins)m" }
+        return "\(mins / 60)h"
+    }
+}
+
+// MARK: - IconLink (feed rows — icon only)
+struct IconLink: View {
+    let url: URL
+    let imageName: String
+
+    var body: some View {
+        Link(destination: url) {
+            Image(imageName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 17, height: 17)
+                .frame(width: 34, height: 34)
+                .overlay(Circle().stroke(Color.recordCardBorder, lineWidth: 1))
+        }
     }
 }
 

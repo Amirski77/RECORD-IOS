@@ -33,6 +33,8 @@ func fetchReactions(postIDs: [Int]) async -> [Reaction] {
             .execute()
             .value
         return reactions
+    } catch is CancellationError {
+        return []
     } catch {
         print("Reactions load failed: \(error)")
         return []

@@ -116,7 +116,6 @@ struct DiaryTabView: View {
                         .id(session.userID)   // rebuild once identity resolves
                 }
             }
-            .toolbar(.hidden, for: .tabBar)
             .recordDestinations(path: $path)
         }
     }

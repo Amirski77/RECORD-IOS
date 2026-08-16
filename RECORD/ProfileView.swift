@@ -41,8 +41,6 @@ struct ProfileView: View {
 
     var body: some View {
         ZStack {
-            Color.recordBG.ignoresSafeArea()
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
 
@@ -169,6 +167,7 @@ struct ProfileView: View {
             }
             .refreshable { await load() }
         }
+        .background(Color.recordBG.ignoresSafeArea())
         .navigationBarBackButtonHidden(false)
         .task {
             await load()

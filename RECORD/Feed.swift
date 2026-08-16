@@ -23,6 +23,8 @@ func fetchTodayFeed() async -> [TodayFeedItem] {
         }
 
         return items
+    } catch is CancellationError {
+        return []
     } catch {
         print("Feed load failed: \(error)")
         return []
