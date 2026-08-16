@@ -458,6 +458,7 @@ struct ProfileView: View {
     }
 
     func logOut() async {
+        audio.stop()
         do { try await supabase.auth.signOut() }
         catch { print("Logout failed: \(error)") }
     }

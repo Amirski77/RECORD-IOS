@@ -262,7 +262,7 @@ struct ContentView: View {
                         }   // closes inner VStack (ScrollView content)
                     }   // closes ScrollView
                     .scrollIndicators(.hidden)
-                    .padding(.top, -14)
+                    .padding(.top, -20)
                     .refreshable { await loadFeedAndReactions() }
                 }   // closes outer VStack
                 .padding(.horizontal, 24)
