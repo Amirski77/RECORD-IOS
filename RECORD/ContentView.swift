@@ -74,7 +74,7 @@ struct ContentView: View {
                     
                     //THE GREEN "POST" CARD
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .lastTextBaseline, spacing: 8) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text("YOUR RECORD · TODAY")
                                 .font(.sans(10, .medium))
                                 .tracking(1.5)
@@ -83,7 +83,7 @@ struct ContentView: View {
                             Spacer(minLength: 8)
 
                             VStack(alignment: .trailing, spacing: 1) {                                if streak.effectiveCount > 0 || streak.state == .broken {
-                                    HStack(spacing: 5) {
+                                    HStack(alignment: .firstTextBaseline, spacing: 5) {
                                         Text("\(streak.effectiveCount)")
                                             .font(.display(17, .extraBold))
                                             .foregroundStyle(streakNumberColor)
