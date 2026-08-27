@@ -19,6 +19,8 @@ struct FriendsView: View {
     @State private var query = ""
     @State private var results: [UserSearchResult] = []
     @State private var searching = false
+    @State private var openRow: String?
+    @State private var pendingRemoval: Friend?
 
     // Rows we've just acted on, so the button flips before the server
     // round-trip finishes. Cleared whenever we reload.
@@ -75,6 +77,24 @@ struct FriendsView: View {
         }
         .task { await load() }
         .task(id: query) { await runSearch() }
+        .confirmationDialog(
+            "Remove \(pendingRemoval?.username ?? "friend")?",
+            isPresented: Binding(
+                get: { pendingRemoval != nil },
+                set: { if !$0 { pendingRemoval = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) {
+                guard let friend = pendingRemoval else { return }
+                pendingRemoval = nil
+                Task {
+                    _ = await removeFriendship(with: friend.id)
+                    await load()
+                }
+            }
+            Button("Cancel", role: .cancel) { pendingRemoval = nil }
+        }
     }
 
     // MARK: - Search
@@ -248,9 +268,16 @@ struct FriendsView: View {
     }
 
     private func friendRow(_ friend: Friend) -> some View {
-        NavigationLink(value: ProfileRoute(userID: friend.id,
-                                           username: friend.username,
-                                           isMe: false)) {
+        SwipeToRemove(
+            isOpen: openRow == friend.id,
+            onOpenChange: { openRow = $0 ? friend.id : nil },
+            onRemove: { pendingRemoval = friend },
+            onTap: {
+                path.append(ProfileRoute(userID: friend.id,
+                                         username: friend.username,
+                                         isMe: false))
+            }
+        ) {
             HStack(spacing: 12) {
                 FriendAvatar(username: friend.username, url: friend.avatar_url)
 
@@ -270,9 +297,12 @@ struct FriendsView: View {
                     .foregroundStyle(Color.recordDot)
             }
             .padding(.vertical, 13)
-            .contentShape(Rectangle())
+            .contextMenu {
+                Button("Remove friend", role: .destructive) {
+                    pendingRemoval = friend
+                }
+            }
         }
-        .buttonStyle(.plain)
     }
 
     private func friendSubtitle(_ friend: Friend) -> String {
@@ -362,5 +392,80 @@ struct FriendAvatar: View {
                 AvatarView(username: username, size: 34)
             }
         }
+    }
+}
+
+// MARK: - Swipe to remove
+//
+// Native .swipeActions needs a List, and this screen isn't one. The row sits
+// in a ZStack above the button and slides left to reveal it.
+
+struct SwipeToRemove<Content: View>: View {
+    let isOpen: Bool
+    let onOpenChange: (Bool) -> Void
+    let onRemove: () -> Void
+    let onTap: () -> Void
+    @ViewBuilder var content: Content
+
+    @State private var drag: CGFloat = 0
+    @State private var didDrag = false
+    private let width: CGFloat = 84
+
+    private var offset: CGFloat {
+        min(0, max(-width, (isOpen ? -width : 0) + drag))
+    }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            Button {
+                onRemove()
+                onOpenChange(false)
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 15))
+                    Text("Remove")
+                        .font(.sans(10, .medium))
+                }
+                .foregroundStyle(Color.recordText)
+                .frame(width: width)
+                .frame(maxHeight: .infinity)
+                .background(Color(red: 1.0, green: 0.23, blue: 0.19))
+            }
+            .buttonStyle(.plain)
+            .opacity(offset < -2 ? 1 : 0)
+
+            content
+                .background(Color.recordBG)
+                .offset(x: offset)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // An open row closes on tap instead of navigating.
+                    if isOpen {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            onOpenChange(false)
+                        }
+                    } else {
+                        onTap()
+                    }
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 12)
+                        .onChanged { value in
+                            guard abs(value.translation.width) > abs(value.translation.height)
+                            else { return }
+                            didDrag = true
+                            drag = value.translation.width
+                        }
+                        .onEnded { value in
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                onOpenChange(value.translation.width < -width / 2)
+                                drag = 0
+                            }
+                            didDrag = false
+                        }
+                )
+        }
+        .clipped()
     }
 }
