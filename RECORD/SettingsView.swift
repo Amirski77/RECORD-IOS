@@ -4,90 +4,81 @@
 //
 //  Created by Amir Rashidov on 01.08.2026.
 //
+//  Connect rows rather than a form: each service is a row showing its state,
+//  and tapping opens a sheet to change it. Today the sheet holds a text field.
+//  When Spotify OAuth lands, only the sheet's contents change — the row, the
+//  state, and the save path stay as they are.
+//
 
 import SwiftUI
 import Supabase
 
+// MARK: - Which service
+
+enum MusicService: String, Identifiable {
+    case spotify, appleMusic
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .spotify:    "Spotify"
+        case .appleMusic: "Apple Music"
+        }
+    }
+
+    var logo: String {
+        switch self {
+        case .spotify:    "spotify-logo-white"
+        case .appleMusic: "apple-music-logo-white"
+        }
+    }
+
+    var hint: String {
+        switch self {
+        case .spotify:
+            "In Spotify: your profile → ⋯ → Share → Copy link to profile."
+        case .appleMusic:
+            "In Apple Music: Listen Now → your photo → Edit → Share Profile."
+        }
+    }
+}
+
+// MARK: - Settings
+
 struct SettingsView: View {
-    
-    @State private var appleMusicProfile = ""
+
     @State private var spotifyProfile = ""
+    @State private var appleMusicProfile = ""
+
     @State private var loading = true
-    @State private var saving = false
+    @State private var editing: MusicService?
     @State private var showDeleteConfirm = false
     @State private var deleting = false
-    
+    @State private var errorMessage: String?
+
     var body: some View {
         ZStack {
             Color.recordBG.ignoresSafeArea()
-            
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    
-                    // LISTENING SECTION
+
+                    // LISTENING
                     sectionHeader("LISTENING")
-                    
+
                     Text("Where friends can find you.")
                         .font(.sans(12.5))
                         .foregroundStyle(Color.recordSecondary)
-                        .padding(.bottom, 12)
-                    
-                    // Spotify field
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("SPOTIFY PROFILE URL")
-                            .font(.sans(10, .medium))
-                            .tracking(1)
-                            .foregroundStyle(Color.recordTertiary)
-                        TextField("", text: $spotifyProfile,
-                                  prompt: Text("paste your Spotify profile link").foregroundColor(.recordTertiary))
-                            .font(.sans(14))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .padding()
-                            .background(Color.recordSeparator)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .foregroundStyle(Color.recordText)
-                     }
-                    .padding(.vertical, 10)
-                    
-                    // Apple Music field
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("APPLE MUSIC PROFILE URL")
-                            .font(.sans(10, .medium))
-                            .tracking(1)
-                            .foregroundStyle(Color.recordTertiary)
-                        TextField("", text: $appleMusicProfile,
-                                  prompt: Text("paste your Apple Music profile link").foregroundColor(.recordTertiary))
-                            .font(.sans(14))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .padding()
-                            .background(Color.recordSeparator)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .foregroundStyle(Color.recordText)
-                    }
-                    .padding(.vertical, 10)
-                    
-                    // Save button
-                    Button {
-                        Task { await saveLinks() }
-                    } label: {
-                        Text(saving ? "Saving..." : "Save")
-                            .font(.sans(14, .bold))
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.recordAccent)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(saving)
-                    .padding(.top, 8)
-                    
-                    // ACCOUNT SECTION
+                        .padding(.bottom, 14)
+
+                    connectRow(.spotify, value: spotifyProfile)
+                    divider
+                    connectRow(.appleMusic, value: appleMusicProfile)
+
+                    // ACCOUNT
                     sectionHeader("ACCOUNT")
-                    
-                    // Sign Out
+
                     Button {
                         Task { await signOut() }
                     } label: {
@@ -102,21 +93,20 @@ struct SettingsView: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .padding(.top, 8)
-                    
-                    // DELETE account ( we" ll wire this next)
+                    .padding(.top, 10)
+
                     Button {
                         showDeleteConfirm = true
                     } label: {
-                        Text(deleting ? "Deleting..." : "Delete Account")
+                        Text(deleting ? "Deleting…" : "Delete Account")
                             .font(.sans(12.5))
-                            .foregroundStyle(Color.recordDestructive)
+                            .foregroundStyle(Color.recordDanger)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 15)
                     }
                     .buttonStyle(.plain)
-                    .padding(.top, 8)
                     .disabled(deleting)
+                    .padding(.top, 4)
                 }
                 .padding(24)
             }
@@ -124,6 +114,19 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadLinks() }
+        .sheet(item: $editing) { service in
+            ConnectSheet(
+                service: service,
+                current: service == .spotify ? spotifyProfile : appleMusicProfile,
+                onSave: { newValue in
+                    if service == .spotify { spotifyProfile = newValue }
+                    else                   { appleMusicProfile = newValue }
+                    Task { await saveLinks() }
+                }
+            )
+            .presentationDetents([.height(320)])
+            .presentationBackground(Color.recordBG)
+        }
         .alert("Delete your account?", isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) {
                 Task { await deleteAccount() }
@@ -132,26 +135,73 @@ struct SettingsView: View {
         } message: {
             Text("This permanently deletes your records, streak, and profile. This can't be undone.")
         }
+        .alert("Something went wrong",
+               isPresented: Binding(get: { errorMessage != nil },
+                                    set: { if !$0 { errorMessage = nil } })) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
-    
-    // MARK: - Section Header
-    // section header with rule line
-    func sectionHeader(_ title: String) -> some View {
+
+    // MARK: - Rows
+
+    private func connectRow(_ service: MusicService, value: String) -> some View {
+        let connected = !value.isEmpty
+
+        return Button {
+            editing = service
+        } label: {
+            HStack(spacing: 12) {
+                Image(service.logo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(service.name)
+                        .font(.sans(14))
+                        .foregroundStyle(Color.recordText)
+                    Text(connected ? "Connected" : "Not connected")
+                        .font(.sans(11.5))
+                        .foregroundStyle(connected ? Color.recordAccentMid : Color.recordTertiary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.recordDot)
+            }
+            .padding(.vertical, 15)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(Color.recordSeparator)
+            .frame(height: 1)
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
         HStack(spacing: 14) {
             Text(title)
                 .font(.sans(11, .medium))
                 .tracking(1)
                 .foregroundStyle(Color.recordTertiary)
             Rectangle()
-                .fill(Color(red: 0.113, green: 0.113, blue: 0.113))
+                .fill(Color.recordRule)
                 .frame(height: 1)
         }
         .padding(.top, 30)
         .padding(.bottom, 6)
     }
-    
-    // MARK: - load Links / save Links / sign Out / delete Account
-    func loadLinks() async {
+
+    // MARK: - Data
+
+    private func loadLinks() async {
         do {
             let userID = try await supabase.auth.session.user.id
             let row: LinksRow = try await supabase
@@ -165,13 +215,12 @@ struct SettingsView: View {
             spotifyProfile = row.spotify_profile ?? ""
         } catch {
             print("Load links failed: \(error)")
+            errorMessage = "Couldn't load your settings. Pull to try again."
         }
         loading = false
     }
-    
-    func saveLinks() async {
-        saving = true
-        defer { saving = false}
+
+    private func saveLinks() async {
         do {
             let userID = try await supabase.auth.session.user.id
             try await supabase
@@ -184,28 +233,134 @@ struct SettingsView: View {
                 .execute()
         } catch {
             print("Save links failed: \(error)")
+            errorMessage = "Couldn't save that link. Check your connection and try again."
+            // Put the row back to what the server still holds.
+            await loadLinks()
         }
     }
-    
-    func signOut() async {
+
+    private func signOut() async {
         do { try await supabase.auth.signOut() }
-        catch { print("Sign out failed: \(error)") }
+        catch {
+            print("Sign out failed: \(error)")
+            errorMessage = "Couldn't sign out. Try again."
+        }
     }
-    
-    func deleteAccount() async {
+
+    private func deleteAccount() async {
         deleting = true
         defer { deleting = false }
         do {
-            print("Calling delete-account function...")   // ← ADD
             let response: DeleteResponse = try await supabase.functions
                 .invoke("delete-account")
-            print("Delete response: \(response)")           // ← ADD
+
+            if let serverError = response.error {
+                errorMessage = serverError
+                return
+            }
 
             try? await supabase.auth.signOut()
-            print("Signed out")                             // ← ADD
         } catch {
-            print("Delete account failed: \(error)")        // ← already there
+            print("Delete account failed: \(error)")
+            errorMessage = "Couldn't delete your account. Try again, or contact support if this keeps happening."
         }
+    }
+}
+
+// MARK: - Connect sheet
+//
+// When OAuth arrives, this is the only thing that changes: the field becomes a
+// "Connect with Spotify" button and the callback writes the same value.
+
+struct ConnectSheet: View {
+    let service: MusicService
+    let current: String
+    let onSave: (String) -> Void
+
+    @State private var text: String
+    @Environment(\.dismiss) private var dismiss
+
+    init(service: MusicService, current: String, onSave: @escaping (String) -> Void) {
+        self.service = service
+        self.current = current
+        self.onSave = onSave
+        _text = State(initialValue: current)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            HStack(spacing: 10) {
+                Image(service.logo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                Text(service.name)
+                    .font(.display(20, .bold))
+                    .foregroundStyle(Color.recordText)
+                Spacer()
+            }
+            .padding(.top, 26)
+
+            Text(service.hint)
+                .font(.sans(12.5))
+                .foregroundStyle(Color.recordSecondary)
+                .padding(.top, 8)
+
+            TextField("", text: $text,
+                      prompt: Text("paste your profile link")
+                        .foregroundColor(.recordTertiary))
+                .font(.sans(14))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .keyboardType(.URL)
+                .foregroundStyle(Color.recordText)
+                .padding()
+                .background(Color.recordAvatarFill)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.recordCardBorder, lineWidth: 1)
+                )
+                .padding(.top, 18)
+
+            Spacer()
+
+            HStack(spacing: 10) {
+                if !current.isEmpty {
+                    Button {
+                        onSave("")
+                        dismiss()
+                    } label: {
+                        Text("Disconnect")
+                            .font(.sans(14, .medium))
+                            .foregroundStyle(Color.recordDestructive)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .overlay(
+                                Capsule().stroke(Color.recordDestructive.opacity(0.4), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button {
+                    onSave(text.trimmingCharacters(in: .whitespaces))
+                    dismiss()
+                } label: {
+                    Text("Save")
+                        .font(.sans(14, .bold))
+                        .foregroundStyle(Color.recordInk)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.recordAccent)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 24)
+        }
+        .padding(.horizontal, 24)
     }
 }
 

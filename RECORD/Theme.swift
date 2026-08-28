@@ -64,6 +64,8 @@ extension Color {
     
     static let recordArtist   = Color(red: 0.604, green: 0.604, blue: 0.604)  // #9a9a9a
     static let recordNoteRule = Color(red: 0.165, green: 0.165, blue: 0.165)  // #2a2a2a
+    
+    static let recordDanger = Color(red: 1.0, green: 0.23, blue: 0.19)  // #FF3B30
 }
 
 // MARK: - Gradients
@@ -99,7 +101,7 @@ extension Color {
     static let recordDim = Color.recordTertiary               // #6f6f6f → #6a6a66
 
     @available(*, deprecated, renamed: "recordDestructive")
-    static let recordError = Color.recordDestructive          // coral → #c25f5f (spec)
+    static let recordError = Color.recordDestructive
 }
 
 // MARK: - Type
