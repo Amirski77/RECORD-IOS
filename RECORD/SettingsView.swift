@@ -51,11 +51,12 @@ struct SettingsView: View {
     @State private var spotifyProfile = ""
     @State private var appleMusicProfile = ""
 
-    @State private var loading = true
+
     @State private var editing: MusicService?
     @State private var showDeleteConfirm = false
     @State private var deleting = false
     @State private var errorMessage: String?
+    @State private var saveTask: Task<Void, Never>?
 
     var body: some View {
         ZStack {
@@ -121,10 +122,17 @@ struct SettingsView: View {
                 onSave: { newValue in
                     if service == .spotify { spotifyProfile = newValue }
                     else                   { appleMusicProfile = newValue }
-                    Task { await saveLinks() }
+
+                    // Chain onto any save still in flight so two rapid saves
+                    // can't interleave and overwrite each other.
+                    let previous = saveTask
+                    saveTask = Task {
+                        await previous?.value
+                        await saveLink(service, value: newValue)
+                    }
                 }
             )
-            .presentationDetents([.height(320)])
+            .presentationDetents([.height(340), .large])
             .presentationBackground(Color.recordBG)
         }
         .alert("Delete your account?", isPresented: $showDeleteConfirm) {
@@ -217,25 +225,31 @@ struct SettingsView: View {
             print("Load links failed: \(error)")
             errorMessage = "Couldn't load your settings. Pull to try again."
         }
-        loading = false
     }
 
-    private func saveLinks() async {
+    private func saveLink(_ service: MusicService, value: String) async {
+        let stored: String? = value.isEmpty ? nil : value
+
         do {
             let userID = try await supabase.auth.session.user.id
+
+            struct ProfileLinks: Encodable {
+                let id: String
+                let apple_music_profile: String?
+                let spotify_profile: String?
+            }
+
             try await supabase
                 .from("profiles")
-                .update([
-                    "apple_music_profile": appleMusicProfile.isEmpty ? nil : appleMusicProfile,
-                    "spotify_profile": spotifyProfile.isEmpty ? nil : spotifyProfile
-                ])
-                .eq("id", value: userID)
+                .upsert(ProfileLinks(
+                    id: userID.uuidString.lowercased(),
+                    apple_music_profile: service == .appleMusic ? stored : (appleMusicProfile.isEmpty ? nil : appleMusicProfile),
+                    spotify_profile:     service == .spotify    ? stored : (spotifyProfile.isEmpty ? nil : spotifyProfile)
+                ))
                 .execute()
         } catch {
-            print("Save links failed: \(error)")
+            print("Save link failed: \(error)")
             errorMessage = "Couldn't save that link. Check your connection and try again."
-            // Put the row back to what the server still holds.
-            await loadLinks()
         }
     }
 
@@ -251,15 +265,10 @@ struct SettingsView: View {
         deleting = true
         defer { deleting = false }
         do {
-            let response: DeleteResponse = try await supabase.functions
-                .invoke("delete-account")
+            try await supabase.functions.invoke("delete-account")
 
-            if let serverError = response.error {
-                errorMessage = serverError
-                return
-            }
-
-            try? await supabase.auth.signOut()
+            do { try await supabase.auth.signOut() }
+            catch { print("Sign out after delete failed (session will expire): \(error)") }
         } catch {
             print("Delete account failed: \(error)")
             errorMessage = "Couldn't delete your account. Try again, or contact support if this keeps happening."
@@ -324,8 +333,6 @@ struct ConnectSheet: View {
                 )
                 .padding(.top, 18)
 
-            Spacer()
-
             HStack(spacing: 10) {
                 if !current.isEmpty {
                     Button {
@@ -358,7 +365,9 @@ struct ConnectSheet: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.bottom, 24)
+            .padding(.top, 20)
+
+            Spacer()
         }
         .padding(.horizontal, 24)
     }
@@ -367,9 +376,4 @@ struct ConnectSheet: View {
 struct LinksRow: Decodable {
     let apple_music_profile: String?
     let spotify_profile: String?
-}
-
-struct DeleteResponse: Decodable {
-    let success: Bool?
-    let error: String?
 }

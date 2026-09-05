@@ -106,7 +106,7 @@ struct PostConfirmView: View {
                 TextField("", text: $note,
                           prompt: Text("Add a note (optional)").foregroundColor(.recordTertiary),
                           axis: .vertical)
-                    .lineLimit(1...20)
+                    .lineLimit(2...5)
                     .padding()
                     .background(Color.recordSeparator)
                     .clipShape(RoundedRectangle(cornerRadius: 8))

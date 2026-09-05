@@ -430,7 +430,7 @@ struct SwipeToRemove<Content: View>: View {
                 .foregroundStyle(Color.recordText)
                 .frame(width: width)
                 .frame(maxHeight: .infinity)
-                .background(Color(red: 1.0, green: 0.23, blue: 0.19))
+                .background(Color.recordDanger)
             }
             .buttonStyle(.plain)
             .opacity(offset < -2 ? 1 : 0)
