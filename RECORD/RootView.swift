@@ -13,6 +13,8 @@ struct RootView: View {
     @StateObject private var audio = AudioPlayer()
     @State private var isLoggedIn = false
     @State private var checking = true
+    @State private var pendingInvite: String?
+    @State private var redeemMessage: String?
 
     var body: some View {
         Group {
@@ -26,6 +28,25 @@ struct RootView: View {
             } else {
                 AuthView()
             }
+        }
+        .onOpenURL { url in
+            // recordapp.live/i/<code>
+            guard url.pathComponents.count >= 3,
+                  url.pathComponents[1] == "i" else { return }
+            pendingInvite = url.pathComponents[2]
+            Task { await redeemPendingInvite() }
+        }
+        // The link can arrive before login finishes (cold launch into
+        // AuthView) — redeeming needs auth.uid(), so retry once it flips.
+        .onChange(of: isLoggedIn) { _, loggedIn in
+            if loggedIn { Task { await redeemPendingInvite() } }
+        }
+        .alert("Invite",
+               isPresented: Binding(get: { redeemMessage != nil },
+                                     set: { if !$0 { redeemMessage = nil } })) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(redeemMessage ?? "")
         }
         .task {
             // check if there's already a logged-in session
@@ -46,6 +67,16 @@ struct RootView: View {
                 }
             }
         }
+    }
+
+    // Consumes pendingInvite exactly once it's redeemable, so the two
+    // triggers above (link arrives, login finishes) can both call this
+    // without redeeming twice.
+    func redeemPendingInvite() async {
+        guard isLoggedIn, let code = pendingInvite else { return }
+        pendingInvite = nil
+        let result = await redeemInvite(code: code)
+        redeemMessage = result.message
     }
 }
 
