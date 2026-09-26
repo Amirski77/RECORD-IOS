@@ -19,7 +19,7 @@ final class Session: ObservableObject {
     @Published var username: String = ""
     @Published var avatarURL: String?
 
-    private struct Row: Decodable {
+    private nonisolated struct Row: Decodable {
         let username: String
         let avatar_url: String?
     }

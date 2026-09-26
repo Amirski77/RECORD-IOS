@@ -9,7 +9,7 @@ import SwiftUI
 internal import Auth
 import Supabase
 
-struct ProfileWithStreak: Decodable {
+nonisolated struct ProfileWithStreak: Decodable {
     let current_streak: Int
     let last_post_date: String?
     let avatar_url: String?

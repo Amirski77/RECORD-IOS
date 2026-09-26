@@ -10,6 +10,7 @@
 //  state, and the save path stay as they are.
 //
 
+import AuthenticationServices
 import SwiftUI
 import Supabase
 
@@ -33,15 +34,6 @@ enum MusicService: String, Identifiable {
         case .appleMusic: "apple-music-logo-white"
         }
     }
-
-    var hint: String {
-        switch self {
-        case .spotify:
-            "In Spotify: your profile → ⋯ → Share → Copy link to profile."
-        case .appleMusic:
-            "In Apple Music: Listen Now → your photo → Edit → Share Profile."
-        }
-    }
 }
 
 // MARK: - Settings
@@ -50,7 +42,7 @@ struct SettingsView: View {
 
     @State private var spotifyProfile = ""
     @State private var appleMusicProfile = ""
-
+    @State private var spotifyConnected = false
 
     @State private var editing: MusicService?
     @State private var showDeleteConfirm = false
@@ -73,9 +65,9 @@ struct SettingsView: View {
                         .foregroundStyle(Color.recordSecondary)
                         .padding(.bottom, 14)
 
-                    connectRow(.spotify, value: spotifyProfile)
+                    connectRow(.spotify, connected: spotifyConnected)
                     divider
-                    connectRow(.appleMusic, value: appleMusicProfile)
+                    connectRow(.appleMusic, connected: !appleMusicProfile.isEmpty)
 
                     // ACCOUNT
                     sectionHeader("ACCOUNT")
@@ -118,18 +110,26 @@ struct SettingsView: View {
         .sheet(item: $editing) { service in
             ConnectSheet(
                 service: service,
-                current: service == .spotify ? spotifyProfile : appleMusicProfile,
-                onSave: { newValue in
-                    if service == .spotify { spotifyProfile = newValue }
-                    else                   { appleMusicProfile = newValue }
+                current: appleMusicProfile,
+                spotifyConnected: spotifyConnected,
+                onSaveAppleMusic: { newValue in
+                    appleMusicProfile = newValue
 
                     // Chain onto any save still in flight so two rapid saves
                     // can't interleave and overwrite each other.
                     let previous = saveTask
                     saveTask = Task {
                         await previous?.value
-                        await saveLink(service, value: newValue)
+                        await saveAppleMusicLink(newValue)
                     }
+                },
+                onSpotifyConnected: { profileURL in
+                    spotifyConnected = true
+                    spotifyProfile = profileURL ?? ""
+                },
+                onSpotifyDisconnected: {
+                    spotifyConnected = false
+                    spotifyProfile = ""
                 }
             )
             .presentationDetents([.height(340), .large])
@@ -154,9 +154,7 @@ struct SettingsView: View {
 
     // MARK: - Rows
 
-    private func connectRow(_ service: MusicService, value: String) -> some View {
-        let connected = !value.isEmpty
-
+    private func connectRow(_ service: MusicService, connected: Bool) -> some View {
         return Button {
             editing = service
         } label: {
@@ -214,38 +212,32 @@ struct SettingsView: View {
             let userID = try await supabase.auth.session.user.id
             let row: LinksRow = try await supabase
                 .from("profiles")
-                .select("apple_music_profile, spotify_profile")
+                .select("apple_music_profile, spotify_profile, spotify_connected")
                 .eq("id", value: userID)
                 .single()
                 .execute()
                 .value
             appleMusicProfile = row.apple_music_profile ?? ""
             spotifyProfile = row.spotify_profile ?? ""
+            spotifyConnected = row.spotify_connected
         } catch {
             print("Load links failed: \(error)")
             errorMessage = "Couldn't load your settings. Pull to try again."
         }
     }
 
-    private func saveLink(_ service: MusicService, value: String) async {
+    /// Spotify is written directly by the spotify-connect / spotify-disconnect
+    /// edge functions, since that's where the OAuth tokens live — this is
+    /// Apple Music only.
+    private func saveAppleMusicLink(_ value: String) async {
         let stored: String? = value.isEmpty ? nil : value
 
         do {
             let userID = try await supabase.auth.session.user.id
-
-            struct ProfileLinks: Encodable {
-                let id: String
-                let apple_music_profile: String?
-                let spotify_profile: String?
-            }
-
             try await supabase
                 .from("profiles")
-                .upsert(ProfileLinks(
-                    id: userID.uuidString.lowercased(),
-                    apple_music_profile: service == .appleMusic ? stored : (appleMusicProfile.isEmpty ? nil : appleMusicProfile),
-                    spotify_profile:     service == .spotify    ? stored : (spotifyProfile.isEmpty ? nil : spotifyProfile)
-                ))
+                .update(["apple_music_profile": stored])
+                .eq("id", value: userID)
                 .execute()
         } catch {
             print("Save link failed: \(error)")
@@ -278,27 +270,42 @@ struct SettingsView: View {
 
 // MARK: - Connect sheet
 //
-// When OAuth arrives, this is the only thing that changes: the field becomes a
-// "Connect with Spotify" button and the callback writes the same value.
+// Apple Music keeps the original paste-a-link flow. Spotify is real OAuth:
+// the sheet becomes a single Connect/Disconnect button, and the callback
+// updates local state only — the edge functions already wrote the profile
+// row themselves.
 
 struct ConnectSheet: View {
     let service: MusicService
-    let current: String
-    let onSave: (String) -> Void
+    let current: String              // Apple Music profile URL only
+    let spotifyConnected: Bool
+    let onSaveAppleMusic: (String) -> Void
+    let onSpotifyConnected: (String?) -> Void   // profile URL
+    let onSpotifyDisconnected: () -> Void
 
     @State private var text: String
+    @State private var isWorking = false
+    @State private var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.webAuthenticationSession) private var webAuthenticationSession
 
-    init(service: MusicService, current: String, onSave: @escaping (String) -> Void) {
+    init(service: MusicService,
+         current: String,
+         spotifyConnected: Bool,
+         onSaveAppleMusic: @escaping (String) -> Void,
+         onSpotifyConnected: @escaping (String?) -> Void,
+         onSpotifyDisconnected: @escaping () -> Void) {
         self.service = service
         self.current = current
-        self.onSave = onSave
+        self.spotifyConnected = spotifyConnected
+        self.onSaveAppleMusic = onSaveAppleMusic
+        self.onSpotifyConnected = onSpotifyConnected
+        self.onSpotifyDisconnected = onSpotifyDisconnected
         _text = State(initialValue: current)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-
             HStack(spacing: 10) {
                 Image(service.logo)
                     .resizable()
@@ -311,7 +318,22 @@ struct ConnectSheet: View {
             }
             .padding(.top, 26)
 
-            Text(service.hint)
+            if service == .spotify {
+                spotifyBody
+            } else {
+                appleMusicBody
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+    }
+
+    // MARK: Apple Music
+
+    private var appleMusicBody: some View {
+        Group {
+            Text("In Apple Music: Listen Now → your photo → Edit → Share Profile.")
                 .font(.sans(12.5))
                 .foregroundStyle(Color.recordSecondary)
                 .padding(.top, 8)
@@ -336,7 +358,7 @@ struct ConnectSheet: View {
             HStack(spacing: 10) {
                 if !current.isEmpty {
                     Button {
-                        onSave("")
+                        onSaveAppleMusic("")
                         dismiss()
                     } label: {
                         Text("Disconnect")
@@ -352,7 +374,7 @@ struct ConnectSheet: View {
                 }
 
                 Button {
-                    onSave(text.trimmingCharacters(in: .whitespaces))
+                    onSaveAppleMusic(text.trimmingCharacters(in: .whitespaces))
                     dismiss()
                 } label: {
                     Text("Save")
@@ -366,14 +388,74 @@ struct ConnectSheet: View {
                 .buttonStyle(.plain)
             }
             .padding(.top, 20)
-
-            Spacer()
         }
-        .padding(.horizontal, 24)
+    }
+
+    // MARK: Spotify
+
+    private var spotifyBody: some View {
+        Group {
+            Text(spotifyConnected
+                 ? "Connected. Every record you post is added to that month's Spotify playlist automatically."
+                 : "Connect your Spotify account to attach real track links automatically and build a monthly playlist from your records.")
+                .font(.sans(12.5))
+                .foregroundStyle(Color.recordSecondary)
+                .padding(.top, 8)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.sans(12))
+                    .foregroundStyle(Color.recordDestructive)
+                    .padding(.top, 12)
+            }
+
+            Button {
+                Task { await handleSpotifyTap() }
+            } label: {
+                Text(isWorking ? "…" : (spotifyConnected ? "Disconnect" : "Connect with Spotify"))
+                    .font(.sans(14, spotifyConnected ? .medium : .bold))
+                    .foregroundStyle(spotifyConnected ? Color.recordDestructive : Color.recordInk)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(spotifyConnected ? Color.clear : Color.recordAccent)
+                    .overlay(
+                        Capsule().stroke(Color.recordDestructive.opacity(spotifyConnected ? 0.4 : 0), lineWidth: 1)
+                    )
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(isWorking)
+            .padding(.top, 20)
+        }
+    }
+
+    private func handleSpotifyTap() async {
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+
+        if spotifyConnected {
+            if await disconnectSpotify() {
+                onSpotifyDisconnected()
+                dismiss()
+            } else {
+                errorMessage = "Couldn't disconnect. Try again."
+            }
+            return
+        }
+
+        do {
+            let result = try await connectSpotify(using: webAuthenticationSession)
+            onSpotifyConnected(result.profile_url)
+            dismiss()
+        } catch {
+            errorMessage = "Couldn't connect Spotify. Try again."
+        }
     }
 }
 
-struct LinksRow: Decodable {
+nonisolated struct LinksRow: Decodable {
     let apple_music_profile: String?
     let spotify_profile: String?
+    let spotify_connected: Bool
 }

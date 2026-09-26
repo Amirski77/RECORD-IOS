@@ -35,6 +35,9 @@ struct ProfileView: View {
     @State private var joinedDate: String = ""
     @State private var appleMusicProfile: String?
     @State private var spotifyProfile: String?
+    @State private var spotifyConnected = false
+    @State private var monthPlaylists: [String: String] = [:]   // "YYYY-MM": playlist URL
+    @State private var syncingMonths: Set<String> = []
     @EnvironmentObject private var audio: AudioPlayer
 
     @Environment(\.dismiss) private var dismiss
@@ -293,6 +296,10 @@ struct ProfileView: View {
                     Rectangle()
                         .fill(Color.recordSeparator)
                         .frame(height: 1)
+                    if isMe, spotifyConnected,
+                       let key = group.posts.first.flatMap({ monthKey(fromCreatedAt: $0.created_at) }) {
+                        monthPlaylistButton(monthKey: key)
+                    }
                 }
                 .padding(.top, 20)
                 .padding(.bottom, 12)
@@ -355,6 +362,64 @@ struct ProfileView: View {
         }
     }
 
+    // month playlist button — "Create" if not synced yet, "Open ↗" + resync once it is
+    private func monthPlaylistButton(monthKey: String) -> some View {
+        let syncing = syncingMonths.contains(monthKey)
+
+        return HStack(spacing: 6) {
+            if let urlString = monthPlaylists[monthKey], let url = URL(string: urlString) {
+                Link(destination: url) {
+                    playlistCapsuleLabel(syncing ? "SYNCING…" : "PLAYLIST")
+                }
+                Button {
+                    Task { await syncMonth(monthKey) }
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color.recordTertiary)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .disabled(syncing)
+            } else {
+                Button {
+                    Task { await syncMonth(monthKey) }
+                } label: {
+                    playlistCapsuleLabel(syncing ? "SYNCING…" : "CREATE PLAYLIST")
+                }
+                .buttonStyle(.plain)
+                .disabled(syncing)
+            }
+        }
+    }
+
+    private func playlistCapsuleLabel(_ text: String) -> some View {
+        HStack(spacing: 5) {
+            Image("spotify-logo-white")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 11, height: 11)
+            Text(text)
+                .font(.sans(10, .medium))
+                .tracking(0.5)
+        }
+        .foregroundStyle(Color(red: 0.54, green: 0.54, blue: 0.525))
+        .padding(.vertical, 4)
+        .padding(.horizontal, 9)
+        .overlay(
+            Capsule().stroke(Color(red: 0.16, green: 0.16, blue: 0.16), lineWidth: 1)
+        )
+    }
+
+    private func syncMonth(_ key: String) async {
+        guard !syncingMonths.contains(key) else { return }
+        syncingMonths.insert(key)
+        defer { syncingMonths.remove(key) }
+        if let url = await syncMonthPlaylist(month: key) {
+            monthPlaylists[key] = url
+        }
+    }
+
     //  DATA LOADING
     func load() async {
         posts = await fetchUserPosts(userID: userID)
@@ -364,7 +429,7 @@ struct ProfileView: View {
         do {
             let row: ProfileFullRow = try await supabase
                 .from("profiles")
-                .select("current_streak, last_post_date, longest_streak, avatar_url, created_at, apple_music_profile, spotify_profile")
+                .select("current_streak, last_post_date, longest_streak, avatar_url, created_at, apple_music_profile, spotify_profile, spotify_connected")
                 .eq("id", value: userID)
                 .single()
                 .execute()
@@ -395,9 +460,15 @@ struct ProfileView: View {
             }
             appleMusicProfile = row.apple_music_profile
             spotifyProfile = row.spotify_profile
+            spotifyConnected = row.spotify_connected
         } catch {
             print("Profile load failed: \(error)")
         }
+
+        if isMe && spotifyConnected {
+            monthPlaylists = await fetchMonthPlaylists()
+        }
+
         loading = false
     }
     
@@ -552,7 +623,7 @@ struct ProfileView: View {
     
 }
 
-struct ProfileFullRow: Decodable {
+nonisolated struct ProfileFullRow: Decodable {
     let current_streak: Int
     let last_post_date: String?
     let longest_streak: Int
@@ -560,4 +631,5 @@ struct ProfileFullRow: Decodable {
     let created_at: String?
     let apple_music_profile: String?
     let spotify_profile: String?
+    let spotify_connected: Bool
 }

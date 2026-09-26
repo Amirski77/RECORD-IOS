@@ -25,7 +25,7 @@ struct NewPost: Encodable {
     let note: String?
 }
 
-struct StreakRow: Decodable {
+nonisolated struct StreakRow: Decodable {
     let current_streak: Int
     let last_post_date: String?
 }
@@ -193,6 +193,13 @@ struct PostConfirmView: View {
             
             // 4b. Update the streak.
             try await updateStreak(userID: userID)
+
+            // 4c. Append to this month's Spotify playlist, Shazam-style.
+            // Detached and unawaited on purpose: it only captures a String,
+            // so it outlives this view being popped, and a playlist sync
+            // must never fail or delay the post itself.
+            let month = monthKey()
+            Task.detached { _ = await syncMonthPlaylist(month: month) }
 
             // 5. Success — pop all the way home to the feed.
             path = NavigationPath()

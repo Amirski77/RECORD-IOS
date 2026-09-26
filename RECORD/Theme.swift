@@ -28,8 +28,8 @@ extension Color {
 
     // Surfaces
     static let recordBG          = Color(hex: 0x0b0b0b)  // page
-    static let recordCardTop     = Color(hex: 0x151515)  // card gradient top
-    static let recordCardBottom  = Color(hex: 0x101010)  // card gradient bottom
+    nonisolated static let recordCardTop     = Color(hex: 0x151515)  // card gradient top
+    nonisolated static let recordCardBottom  = Color(hex: 0x101010)  // card gradient bottom
     static let recordCardBorder  = Color(hex: 0x232323)  // card hairline
     static let recordSeparator   = Color(hex: 0x1c1c1c)  // between list rows
     static let recordRule        = Color(hex: 0x1d1d1d)  // section header rules

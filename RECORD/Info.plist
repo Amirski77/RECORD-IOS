@@ -13,5 +13,16 @@
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>live.recordapp.RECORD.spotify</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>record</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

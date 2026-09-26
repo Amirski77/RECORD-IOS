@@ -8,7 +8,7 @@
 import Foundation
 import Supabase
 
-struct SpotifyResponse: Decodable {
+nonisolated struct SpotifyResponse: Decodable {
     let spotify_url: String?
 }
 
