@@ -32,6 +32,7 @@ struct ProfileView: View {
     @State private var uploading = false // upload in progress
     @State private var showAvatarOptions = false
     @State private var showPhotoPicker = false
+    @State private var pickPhotoAfterDismiss = false   // open the picker once the options sheet is gone
     @State private var joinedDate: String = ""
     @State private var appleMusicProfile: String?
     @State private var spotifyProfile: String?
@@ -179,7 +180,14 @@ struct ProfileView: View {
         .onChange(of: selectedItem) { _, newItem in
             Task { await uploadAvatar(newItem) }
         }
-        .sheet(isPresented: $showAvatarOptions) {
+        // Presenting the picker while the sheet is still animating out can be
+        // silently dropped, so wait for the sheet's dismissal to finish.
+        .sheet(isPresented: $showAvatarOptions, onDismiss: {
+            if pickPhotoAfterDismiss {
+                pickPhotoAfterDismiss = false
+                showPhotoPicker = true
+            }
+        }) {
             avatarOptionsSheet
                 .presentationDetents([.height(360)])
                 .presentationBackground(Color.recordBG)
@@ -248,8 +256,8 @@ struct ProfileView: View {
             // buttons
             VStack(spacing: 12) {
                 Button {
+                    pickPhotoAfterDismiss = true
                     showAvatarOptions = false
-                    showPhotoPicker = true
                 } label: {
                     Text("Change Photo")
                         .font(.sans(15, .bold))

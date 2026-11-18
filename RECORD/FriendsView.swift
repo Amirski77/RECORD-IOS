@@ -466,7 +466,9 @@ struct SwipeToRemove<Content: View>: View {
                                 onOpenChange(value.translation.width < -width / 2)
                                 drag = 0
                             }
-                            didDrag = false
+                            // Reset on the next run loop, after the tap that
+                            // fires on release has seen didDrag == true.
+                            DispatchQueue.main.async { didDrag = false }
                         }
                 )
         }
