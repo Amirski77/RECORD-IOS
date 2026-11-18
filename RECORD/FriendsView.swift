@@ -440,6 +440,10 @@ struct SwipeToRemove<Content: View>: View {
                 .offset(x: offset)
                 .contentShape(Rectangle())
                 .onTapGesture {
+                    // A drag that releases over this view still fires the tap
+                    // gesture underneath it — without this guard, ending a
+                    // swipe can also navigate into the row you were swiping.
+                    guard !didDrag else { return }
                     // An open row closes on tap instead of navigating.
                     if isOpen {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {

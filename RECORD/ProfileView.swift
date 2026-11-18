@@ -184,6 +184,7 @@ struct ProfileView: View {
                 .presentationDetents([.height(360)])
                 .presentationBackground(Color.recordBG)
         }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $selectedItem, matching: .images)
     }
 
     // EMPTY STATE
@@ -610,7 +611,23 @@ struct ProfileView: View {
             streakLabel.foregroundColor = metaGray
             result.append(streakLabel)
         }
-        
+
+        // Best streak — only when it's a different (higher) number than the
+        // current one, so an active record doesn't repeat itself twice.
+        if bestStreak > streak.effectiveCount {
+            var separator3 = AttributedString("  ·  ")
+            separator3.foregroundColor = metaGray
+            result.append(separator3)
+
+            var bestNum = AttributedString("\(bestStreak)")
+            bestNum.foregroundColor = Color.recordText
+            result.append(bestNum)
+
+            var bestLabel = AttributedString(" BEST")
+            bestLabel.foregroundColor = metaGray
+            result.append(bestLabel)
+        }
+
         // Joined date
         if !joinedDate.isEmpty {
             var separator2 = AttributedString("  ·  SINCE \(joinedDate)")

@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var streakPopped = false
     @State private var loaded = false
     @EnvironmentObject private var audio: AudioPlayer
+    @EnvironmentObject private var session: Session
     
     /// True when friends have posted but you haven't. The server decides this — we just read the flag it sent rather than inferring it from nil fields.
     private var isLocked: Bool {
@@ -51,11 +52,15 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     
                     // MASTHEAD
-                    Text("RECORD")
-                        .font(.display(22, .bold))
-                        .tracking(3)
-                        .foregroundColor(.recordText)
-                    
+                    HStack(alignment: .center) {
+                        Text("RECORD")
+                            .font(.display(22, .bold))
+                            .tracking(3)
+                            .foregroundColor(.recordText)
+                        Spacer()
+                        mastheadAvatar
+                    }
+
                     //DATELINE
                     HStack (spacing: 12) {
                         Text("THE DAILY EDITION")
@@ -416,6 +421,30 @@ struct ContentView: View {
         case .dayOne: return nil
         case .atRisk: return "post before midnight"
         case .broken: return streak.effectiveCount == 0 && streak.lastPostDate != nil ? "start over" : nil
+        }
+    }
+
+    // Tap through to your own profile. Hidden until myUserID resolves so it
+    // never navigates with an empty id.
+    @ViewBuilder
+    private var mastheadAvatar: some View {
+        if !myUserID.isEmpty {
+            NavigationLink(value: ProfileRoute(userID: myUserID, username: session.username, isMe: true)) {
+                Group {
+                    if let avatarURL, let url = URL(string: avatarURL) {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            AvatarView(username: session.username, size: 32)
+                        }
+                        .frame(width: 32, height: 32)
+                        .clipShape(Circle())
+                    } else {
+                        AvatarView(username: session.username, size: 32)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
         }
     }
 }

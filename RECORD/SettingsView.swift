@@ -65,7 +65,8 @@ struct SettingsView: View {
                         .foregroundStyle(Color.recordSecondary)
                         .padding(.bottom, 14)
 
-                    connectRow(.spotify, connected: spotifyConnected)
+                    connectRow(.spotify, connected: spotifyConnected,
+                               detail: spotifyConnected ? spotifyProfile : nil)
                     divider
                     connectRow(.appleMusic, connected: !appleMusicProfile.isEmpty)
 
@@ -154,7 +155,7 @@ struct SettingsView: View {
 
     // MARK: - Rows
 
-    private func connectRow(_ service: MusicService, connected: Bool) -> some View {
+    private func connectRow(_ service: MusicService, connected: Bool, detail: String? = nil) -> some View {
         return Button {
             editing = service
         } label: {
@@ -171,6 +172,13 @@ struct SettingsView: View {
                     Text(connected ? "Connected" : "Not connected")
                         .font(.sans(11.5))
                         .foregroundStyle(connected ? Color.recordAccentMid : Color.recordTertiary)
+                    if let detail, !detail.isEmpty {
+                        Text(detail)
+                            .font(.sans(10.5))
+                            .foregroundStyle(Color.recordTertiary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
 
                 Spacer()
