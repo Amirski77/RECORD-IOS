@@ -26,7 +26,7 @@ func fetchTodayFeed() async -> [TodayFeedItem] {
     } catch is CancellationError {
         return []
     } catch {
-        print("Feed load failed: \(error)")
+        await AppLog.loud("today feed load", error, say: "Couldn't load today's edition. Pull to retry.")
         return []
     }
 }

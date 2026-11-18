@@ -66,7 +66,7 @@ func fetchFriends() async -> [Friend] {
             .execute()
             .value
     } catch {
-        print("Friends load failed: \(error)")
+        await AppLog.loud("friends load", error, say: "Couldn't load your friends. Pull to retry.")
         return []
     }
 }
@@ -78,7 +78,7 @@ func fetchFriendRequests() async -> [FriendRequest] {
             .execute()
             .value
     } catch {
-        print("Requests load failed: \(error)")
+        await AppLog.loud("friend requests load", error, say: "Couldn't load friend requests.")
         return []
     }
 }
@@ -93,7 +93,7 @@ func searchUsers(_ query: String) async -> [UserSearchResult] {
             .execute()
             .value
     } catch {
-        print("Search failed: \(error)")
+        await AppLog.loud("user search", error, say: "Couldn't search right now.")
         return []
     }
 }
@@ -122,7 +122,7 @@ func sendFriendRequest(to userID: String) async -> Bool {
             .execute()
         return true
     } catch {
-        print("Send request failed: \(error)")
+        await AppLog.loud("send friend request", error, say: "Couldn't send that request.")
         return false
     }
 }
@@ -140,7 +140,7 @@ func acceptFriendRequest(from userID: String) async -> Bool {
             .execute()
         return true
     } catch {
-        print("Accept failed: \(error)")
+        await AppLog.loud("accept friend request", error, say: "Couldn't accept that request.")
         return false
     }
 }
@@ -158,7 +158,7 @@ func removeFriendship(with userID: String) async -> Bool {
             .execute()
         return true
     } catch {
-        print("Remove failed: \(error)")
+        await AppLog.loud("remove friendship", error, say: "Couldn't remove that friend.")
         return false
     }
 }

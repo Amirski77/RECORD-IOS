@@ -28,7 +28,7 @@ class AudioPlayer: ObservableObject {
             try AVAudioSession.sharedInstance().setCategory(.playback)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-            print("Audio session setup failed: \(error)")
+            AppLog.quiet("audio session setup", error)
         }
     }
 

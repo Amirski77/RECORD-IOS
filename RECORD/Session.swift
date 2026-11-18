@@ -42,7 +42,7 @@ final class Session: ObservableObject {
             username = row.username
             avatarURL = row.avatar_url
         } catch {
-            print("Session refresh failed: \(error)")
+            AppLog.loud("session refresh", error, say: "Couldn't load your account. Pull to retry.")
         }
     }
 

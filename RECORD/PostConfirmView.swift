@@ -25,11 +25,6 @@ struct NewPost: Encodable {
     let note: String?
 }
 
-nonisolated struct StreakRow: Decodable {
-    let current_streak: Int
-    let last_post_date: String?
-}
-
 struct PostConfirmView: View {
     let song: Song
     @Binding var path: NavigationPath
@@ -191,8 +186,10 @@ struct PostConfirmView: View {
                 .insert(newPost)
                 .execute()
             
-            // 4b. Update the streak.
-            try await updateStreak(userID: userID)
+            // 4b. The streak is not touched here. A trigger on `posts`
+            //      (posts_apply_streak) owns current_streak, longest_streak
+            //      and last_post_date, and the client is no longer granted
+            //      UPDATE on those columns.
 
             // 4c. Append to this month's Spotify playlist, Shazam-style.
             // Detached and unawaited on purpose: it only captures a String,
@@ -236,50 +233,6 @@ struct PostConfirmView: View {
         return !rows.isEmpty
     }
     
-    // +1 if posted yesterday, else reset
-    func updateStreak(userID : UUID) async throws {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC")!
-        let today = cal.startOfDay(for: Date())
-        
-        // read current streak + last post date
-        let row: StreakRow = try await supabase
-            .from("profiles")
-            .select("current_streak, last_post_date")
-            .eq("id", value: userID)
-            .single()
-            .execute()
-            .value
-        
-        // figure out the new streak
-        var newStreak = 1
-        if let lastStr = row.last_post_date {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "yyyy-MM-dd"
-            fmt.timeZone = TimeZone(identifier: "UTC")!
-            if let last = fmt.date(from: lastStr) {
-                let yerterday = cal.date(byAdding: .day, value: -1, to: today)!
-                if cal.isDate(last, inSameDayAs: yerterday) {
-                    newStreak = row.current_streak + 1 // consecutive → +1
-                }
-                //else : gap → stays 1 (fresh start)
-            }
-        }
-        
-        //write it back
-        let todayStr: String = {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "yyyy-MM-dd"
-            fmt.timeZone = TimeZone(identifier: "UTC")!
-            return fmt.string(from: today)
-        }()
-        
-        try await supabase
-            .from("profiles")
-            .update(["current_streak": String(newStreak), "last_post_date": todayStr])
-            .eq("id", value: userID)
-            .execute()
-    }
     
     
 }

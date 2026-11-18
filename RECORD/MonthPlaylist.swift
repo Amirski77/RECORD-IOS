@@ -47,7 +47,7 @@ func syncMonthPlaylist(month: String) async -> String? {
         )
         return response.playlist_url
     } catch {
-        print("Playlist sync failed: \(error)")
+        AppLog.quiet("playlist sync", error)
         return nil
     }
 }
@@ -70,7 +70,7 @@ func fetchMonthPlaylists() async -> [String: String] {
             .value
         return Dictionary(uniqueKeysWithValues: rows.map { ($0.month, $0.playlist_url) })
     } catch {
-        print("Month playlists load failed: \(error)")
+        AppLog.quiet("month playlists load", error)
         return [:]
     }
 }

@@ -17,7 +17,7 @@ func fetchMyInviteCode() async -> String? {
             .execute()
             .value
     } catch {
-        print("Invite code failed: \(error)")
+        await AppLog.loud("invite code", error, say: "Couldn't create your invite link.")
         return nil
     }
 }
@@ -47,7 +47,7 @@ func redeemInvite(code: String) async -> RedeemResult {
             .execute()
             .value
     } catch {
-        print("Redeem failed: \(error)")
+        AppLog.quiet("invite redeem", error)
         return RedeemResult(ok: false, username: nil, reason: nil)
     }
 }

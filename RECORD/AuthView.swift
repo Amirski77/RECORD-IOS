@@ -8,11 +8,6 @@
 import SwiftUI
 import Supabase
 
-struct Profile: Codable {
-    let id: UUID
-    let username: String
-}
-
 struct AuthView: View {
     // STATE — these remember what the user types and does
     @State private var isSignUp = false
@@ -116,24 +111,71 @@ struct AuthView: View {
                 try await logIn()
             }
         } catch {
-            errorMessage = error.localizedDescription
+            AppLog.quiet(isSignUp ? "sign up" : "log in", error)
+            let text = String(describing: error).lowercased()
+            if isSignUp, text.contains("duplicate key") || text.contains("database error") {
+                // Almost always profiles_username_lower_key: someone took the
+                // name between the check above and the insert.
+                errorMessage = "That username was just taken. Try another."
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
     func signUp() async throws {
-        guard !username.trimmingCharacters(in: .whitespaces).isEmpty else {
+        let name = username.trimmingCharacters(in: .whitespaces)
+
+        guard !name.isEmpty else {
             errorMessage = "Pick a username."
             return
         }
+        guard Self.isWellFormed(name) else {
+            errorMessage = "Usernames are 2–20 characters, using letters, numbers, dots or underscores."
+            return
+        }
+        // A courtesy check so the common case gets a clear message. It is not
+        // the guard — profiles_username_lower_key is, and it settles the race
+        // between two people claiming one name at the same moment.
+        guard await isUsernameAvailable(name) else {
+            errorMessage = "“\(name)” is taken. Try another."
+            return
+        }
 
-        let response = try await supabase.auth.signUp(email: email, password: password)
-        let userID = response.user.id
+        // The profile row is created by the on_auth_user_created trigger, in
+        // the same transaction as the account, from this metadata. It is
+        // deliberately NOT a second request from here: a separate insert that
+        // could fail on its own is what used to leave accounts that can log
+        // in but have no profile.
+        try await supabase.auth.signUp(
+            email: email,
+            password: password,
+            data: ["username": .string(name)]
+        )
+    }
 
-        let profile = Profile(id: userID, username: username.trimmingCharacters(in: .whitespaces))
-        try await supabase
-            .from("profiles")
-            .insert(profile)
-            .execute()
+    /// Mirrors the profiles_username_shape constraint, so the message comes
+    /// from here rather than from Postgres.
+    static func isWellFormed(_ name: String) -> Bool {
+        (2...20).contains(name.count)
+            && name.allSatisfy { c in
+                c.isASCII && (c.isLetter || c.isNumber || c == "." || c == "_")
+            }
+    }
+
+    /// Case-insensitive, and callable before an account exists.
+    func isUsernameAvailable(_ name: String) async -> Bool {
+        do {
+            return try await supabase
+                .rpc("username_available", params: ["u": name])
+                .execute()
+                .value
+        } catch {
+            // Couldn't ask. Let the signup attempt and the unique index decide
+            // rather than blocking someone on a network blip.
+            AppLog.quiet("username availability check", error)
+            return true
+        }
     }
 
     func logIn() async throws {

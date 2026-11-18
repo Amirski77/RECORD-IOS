@@ -229,7 +229,7 @@ struct SettingsView: View {
             spotifyProfile = row.spotify_profile ?? ""
             spotifyConnected = row.spotify_connected
         } catch {
-            print("Load links failed: \(error)")
+            AppLog.quiet("settings links load", error)
             errorMessage = "Couldn't load your settings. Pull to try again."
         }
     }
@@ -248,7 +248,7 @@ struct SettingsView: View {
                 .eq("id", value: userID)
                 .execute()
         } catch {
-            print("Save link failed: \(error)")
+            AppLog.quiet("save apple music link", error)
             errorMessage = "Couldn't save that link. Check your connection and try again."
         }
     }
@@ -256,7 +256,7 @@ struct SettingsView: View {
     private func signOut() async {
         do { try await supabase.auth.signOut() }
         catch {
-            print("Sign out failed: \(error)")
+            AppLog.quiet("sign out", error)
             errorMessage = "Couldn't sign out. Try again."
         }
     }
@@ -268,9 +268,9 @@ struct SettingsView: View {
             try await supabase.functions.invoke("delete-account")
 
             do { try await supabase.auth.signOut() }
-            catch { print("Sign out after delete failed (session will expire): \(error)") }
+            catch { AppLog.quiet("sign out after delete (session will expire)", error) }
         } catch {
-            print("Delete account failed: \(error)")
+            AppLog.quiet("delete account", error)
             errorMessage = "Couldn't delete your account. Try again, or contact support if this keeps happening."
         }
     }
@@ -456,6 +456,8 @@ struct ConnectSheet: View {
             let result = try await connectSpotify(using: webAuthenticationSession)
             onSpotifyConnected(result.profile_url)
             dismiss()
+        } catch SpotifyConnectError.notConfigured {
+            errorMessage = "Spotify isn't set up in this build yet."
         } catch {
             errorMessage = "Couldn't connect Spotify. Try again."
         }

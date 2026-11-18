@@ -22,8 +22,16 @@ import SwiftUI
 // later refreshes. Replace with the Client ID from the Spotify Developer
 // Dashboard, and register `spotifyRedirectURI` there as a Redirect URI.
 
-let spotifyClientID = "YOUR_SPOTIFY_CLIENT_ID"
+let spotifyClientID = "c8f7f9bac433429d871e38971367c949"
 let spotifyRedirectURI = "record://spotify-callback"
+
+/// Until the real Client ID is pasted above (and SPOTIFY_CLIENT_ID is set as
+/// an edge-function secret), the authorize URL would 400 at Spotify's end with
+/// nothing useful to show the user. Check this before starting the flow so
+/// Settings can say what's actually wrong.
+var spotifyIsConfigured: Bool {
+    spotifyClientID != "YOUR_SPOTIFY_CLIENT_ID" && !spotifyClientID.isEmpty
+}
 private let spotifyScopes = "playlist-modify-public playlist-modify-private user-read-private"
 
 // MARK: - PKCE
@@ -67,6 +75,7 @@ private func authorizeURL(challenge: String, state: String) -> URL {
 }
 
 enum SpotifyConnectError: Error {
+    case notConfigured
     case missingCode
     case stateMismatch
 }
@@ -82,6 +91,8 @@ nonisolated struct SpotifyConnectResult: Decodable {
 /// caller decides how to surface that.
 @MainActor
 func connectSpotify(using session: WebAuthenticationSession) async throws -> SpotifyConnectResult {
+    guard spotifyIsConfigured else { throw SpotifyConnectError.notConfigured }
+
     let pkce = makePKCEPair()
     let state = UUID().uuidString
 
@@ -115,7 +126,7 @@ func disconnectSpotify() async -> Bool {
         try await supabase.functions.invoke("spotify-disconnect")
         return true
     } catch {
-        print("Spotify disconnect failed: \(error)")
+        AppLog.quiet("spotify disconnect", error)
         return false
     }
 }

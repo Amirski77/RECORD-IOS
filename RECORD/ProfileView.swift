@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import Supabase
 import PhotosUI
+import UIKit
 
 struct ProfileRoute: Hashable {
     let userID: String
@@ -471,7 +472,7 @@ struct ProfileView: View {
             spotifyProfile = row.spotify_profile
             spotifyConnected = row.spotify_connected
         } catch {
-            print("Profile load failed: \(error)")
+            AppLog.loud("profile load", error, say: "Couldn't load this diary. Pull to retry.")
         }
 
         if isMe && spotifyConnected {
@@ -487,15 +488,26 @@ struct ProfileView: View {
         defer { uploading = false }
         
         do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                print("Couldn't load image data")
+            guard let picked = try await item.loadTransferable(type: Data.self) else {
+                AppLog.tell("Couldn't read that photo. Try another.")
                 return
             }
-             
+
+            // The picker hands back the original file — usually HEIC off an
+            // iPhone camera, and often several megabytes. The bucket now
+            // accepts image/jpeg under 2 MiB only, and a 512px square is all
+            // the UI ever draws, so normalise before uploading instead of
+            // shipping whatever the camera produced under a .jpg name.
+            guard let data = Self.jpegSquare(from: picked) else {
+                AppLog.tell("That photo couldn't be used. Try another.")
+                return
+            }
+
             let path = "\(userID).jpg"
             try await supabase.storage
                 .from("avatars")
-                .upload(path, data: data, options: FileOptions(upsert: true))
+                .upload(path, data: data,
+                        options: FileOptions(contentType: "image/jpeg", upsert: true))
             
             let publicURL = try supabase.storage
                 .from("avatars")
@@ -513,10 +525,39 @@ struct ProfileView: View {
             avatarURL = urlString
 
         } catch {
-            print("Avatar upload failed: \(error)")
+            AppLog.loud("avatar upload", error, say: "Couldn't save your photo.")
         }
     }
     
+    /// Centre-crops to a square, scales down to `maxSide` points at 1x, and
+    /// encodes as JPEG. Returns nil if the data isn't a decodable image.
+    nonisolated static func jpegSquare(from data: Data, maxSide: CGFloat = 512) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+
+        let side  = min(image.size.width, image.size.height)
+        guard side > 0 else { return nil }
+
+        let scale  = min(1, maxSide / side)
+        let target = CGSize(width: side * scale, height: side * scale)
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1                      // target is already in pixels
+        format.opaque = true
+
+        let square = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            // Draw the whole image scaled, offset so the centre square lands
+            // in the canvas; the overflow is the crop.
+            let drawn = CGSize(width: image.size.width * scale,
+                               height: image.size.height * scale)
+            image.draw(in: CGRect(x: (target.width  - drawn.width)  / 2,
+                                  y: (target.height - drawn.height) / 2,
+                                  width: drawn.width,
+                                  height: drawn.height))
+        }
+
+        return square.jpegData(compressionQuality: 0.85)
+    }
+
     func removeAvatar() async {
         do {
             // clear the URL in the profile
@@ -533,14 +574,14 @@ struct ProfileView: View {
 
             avatarURL = nil   // back to letter-circle
         } catch {
-            print("Remove avatar failed: \(error)")
+            AppLog.loud("avatar remove", error, say: "Couldn't remove your photo.")
         }
     }
 
     func logOut() async {
         audio.stop()
         do { try await supabase.auth.signOut() }
-        catch { print("Logout failed: \(error)") }
+        catch { AppLog.loud("sign out", error, say: "Couldn't sign out. Try again.") }
     }
 
     // HELPERS: date parsing + month grouping

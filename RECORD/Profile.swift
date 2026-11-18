@@ -9,7 +9,6 @@ import Foundation
 import Supabase
 
 func fetchUserPosts(userID: String) async -> [FeedPost] {
-    print("Fetching posts for userID: \(userID)")
     do {
         let posts: [FeedPost] = try await supabase
             .from("posts")
@@ -18,10 +17,9 @@ func fetchUserPosts(userID: String) async -> [FeedPost] {
             .order("created_at", ascending: false)
             .execute()
             .value
-        print("Got \(posts.count) posts")
         return posts
     } catch {
-        print("User posts load failed: \(error)")
+        await AppLog.loud("user posts load", error, say: "Couldn't load records. Pull to retry.")
         return []
     }
 }

@@ -36,7 +36,7 @@ func fetchReactions(postIDs: [Int]) async -> [Reaction] {
     } catch is CancellationError {
         return []
     } catch {
-        print("Reactions load failed: \(error)")
+        AppLog.quiet("reactions load", error)
         return []
     }
 }

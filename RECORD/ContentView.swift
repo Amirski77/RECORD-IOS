@@ -331,7 +331,7 @@ struct ContentView: View {
             streak = Streak(count: profile.current_streak, lastPostDate: lastDate)
             
         } catch {
-            print("Failed to load profile: \(error)")
+            AppLog.loud("today profile load", error, say: "Couldn't load your streak. Pull to retry.")
         }
     }
     
@@ -393,7 +393,7 @@ struct ContentView: View {
             myReactionsByPost = myReactions(reactions, myUserID: myUserID)
             
         } catch {
-            print("Reaction failed: \(error)")
+            AppLog.loud("save reaction", error, say: "Couldn't save that reaction.")
         }
     }
     

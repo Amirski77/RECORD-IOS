@@ -20,7 +20,7 @@ func fetchSpotifyURL(track: String, artist: String) async -> String? {
                 ))
         return response.spotify_url
     } catch {
-        print("Spotify lookup failed: \(error)")
+        AppLog.quiet("spotify lookup", error)
         return nil
     }
 }

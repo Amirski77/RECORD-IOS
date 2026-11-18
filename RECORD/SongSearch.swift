@@ -27,7 +27,7 @@ func searchSongs(query: String) async -> [Song] {
         let response = try JSONDecoder().decode(iTunesResponse.self, from: data)
         return response.results
     } catch {
-        print("Search failed: \(error)")
+        await AppLog.loud("song search", error, say: "Couldn't search songs. Check your connection.")
         return []
     }
 }

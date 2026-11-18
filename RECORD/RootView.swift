@@ -29,6 +29,7 @@ struct RootView: View {
                 AuthView()
             }
         }
+        .recordErrorBanner()
         .onOpenURL { url in
             // recordapp.live/i/<code>
             guard url.pathComponents.count >= 3,
